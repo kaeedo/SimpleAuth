@@ -3,12 +3,41 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
+    <!-- Setting this explicitly to "latest" tells razor engine to use latest C# version, and doesn't change anything for F# -->
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="wwwroot\**\*" />
-    <Compile Include="Program.fs" />
+    <None Include="wwwroot\**\*"/>
+    <Compile Include="Pages\Home\Controller.fs"/>
+    <Compile Include="Program.fs"/>
   </ItemGroup>
+
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="8.0.1"/>
+    <PackageReference Update="FSharp.Core" Version="8.0.100"/>
+    <PackageReference Include="Westwind.AspNetCore.LiveReload" Version="0.5.0"/>
+  </ItemGroup>
+
+  <!-- This group contains upgrades to razor components that are lost via suboptimal transitive dependencies. -->
+  <ItemGroup Label="RazorDeps">
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.Extensions" Version="6.0.26"/>
+    <PackageReference Include="Microsoft.AspNetCore.Razor.Language" Version="6.0.26"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.Razor" Version="6.0.26"/>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <RazorCompileOnBuild>true</RazorCompileOnBuild>
+  </PropertyGroup>
+
+  <Target Name="CopyViewsDllAfterPublish" AfterTargets="AfterPublish">
+    <ItemGroup>
+      <CompiledRazorViews Include="$(OutputPath)\*.Views.*"/>
+    </ItemGroup>
+    <Message Importance="High" Text="Copying compiled razor views to publish directory: @(CompiledRazorViews)"/>
+    <Copy SourceFiles="@(CompiledRazorViews)" DestinationFolder="$(PublishDir)"/>
+  </Target>
 
 </Project>

@@ -6,6 +6,7 @@ open Microsoft.AspNetCore.Routing
 open System
 open Microsoft.AspNetCore.Mvc.ApplicationParts
 open Microsoft.Extensions.DependencyInjection
+open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.Hosting
 open System.IO
 open System.Reflection
@@ -38,6 +39,20 @@ let app =
         builder.Services
             .Configure<RouteOptions>(fun (options: RouteOptions) -> options.LowercaseUrls <- true)
             .AddHttpContextAccessor()
+        |> ignore
+
+
+        builder.Configuration
+            .AddJsonFile("appsettings.json", true, true)
+            .AddJsonFile("appsettings.local.json", true, true)
+        |> ignore
+
+        builder.Services.AddScoped<Supabase.Client>(fun sp ->
+            let url = builder.Configuration["Supabase:BaseUrl"]
+
+            let key = builder.Configuration["Supabase:SecretApiKey"]
+
+            Supabase.Client(url, key))
         |> ignore
 
         // This registers a bunch of services we need for Razor

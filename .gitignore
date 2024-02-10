@@ -19,6 +19,4 @@ devCert.pfx
 devCert.txt
 devCert.crt
 .vs/
-src/App/Properties/launchSettings.json
-src/App/App.fsproj.user
-/src/DataAccess.Hydra/sqlhydra-npgsql.toml
+appsettings.local.json

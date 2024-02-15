@@ -1,14 +1,12 @@
 namespace Web.Pages.Home
 
 open Microsoft.AspNetCore.Mvc
+open Web.Models
 
 type HomeController(supabaseClient: Supabase.Client) =
     inherit Controller()
 
     [<HttpGet>]
     member this.Index() =
-        task {
-            let wef = supabaseClient.Auth.CurrentSession
-
-            return this.View(wef)
-        }
+        let model = { HomeModel.IsLoggedIn = false }
+        this.View(model)

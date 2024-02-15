@@ -1,6 +1,7 @@
 ﻿module Program
 
 open Microsoft.AspNetCore.Builder
+open Microsoft.AspNetCore.Components.Authorization
 open Microsoft.AspNetCore.Hosting
 open Microsoft.AspNetCore.Routing
 open System
@@ -10,6 +11,7 @@ open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.Hosting
 open System.IO
 open System.Reflection
+open Web.Services
 open Westwind.AspNetCore.LiveReload
 
 let registerCompiledViewsAssembly (mvcBuilder: IMvcBuilder) =
@@ -36,17 +38,20 @@ let app =
 
         builder
     |> fun builder ->
-        builder.Services
-            .Configure<RouteOptions>(fun (options: RouteOptions) -> options.LowercaseUrls <- true)
-            .AddHttpContextAccessor()
+        builder.Services.Configure<RouteOptions>(fun (options: RouteOptions) -> options.LowercaseUrls <- true)
         |> ignore
 
+        builder.Services.AddHttpContextAccessor()
+        |> ignore
 
         builder.Configuration
             .AddJsonFile("appsettings.json", true, true)
             .AddJsonFile("appsettings.local.json", true, true)
         |> ignore
 
+        ////////////////////
+        // These three services are key to getting auth with Supabase working
+        ////////////////////
         builder.Services.AddScoped<Supabase.Client>(fun sp ->
             let url = builder.Configuration["Supabase:BaseUrl"]
 
@@ -54,6 +59,13 @@ let app =
 
             Supabase.Client(url, key))
         |> ignore
+
+        builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>()
+        |> ignore
+
+        builder.Services.AddScoped<AuthService>()
+        |> ignore
+        ////////////////////
 
         // This registers a bunch of services we need for Razor
         let mvcBuilder = builder.Services.AddControllersWithViews()

@@ -1,0 +1,19 @@
+@model Web.Models.NavBarModel
+
+<nav>
+    <ul>
+        <li>@Html.ActionLink("Home", "Index", "Home")</li>
+        <li>@Html.ActionLink("Sign in", "SignIn", "Authentication")</li>
+        <li>@Html.ActionLink("Sign up", "SignUp", "Authentication")</li>
+        <li>
+            @if (Model.IsLoggedIn)
+            {
+                @Html.ActionLink("Feel free to enter", "SignUp", "Authentication")
+            }
+            else
+            {
+                @Html.ActionLink("Don't click!", "SignUp", "Authentication")
+            }
+        </li>
+    </ul>
+</nav>

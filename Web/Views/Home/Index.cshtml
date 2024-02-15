@@ -1,4 +1,13 @@
-@model Supabase.Client.Session
+@model Web.Models.HomeModel
 
-<h1>Herp Derp</h1>
-<p>@Model.AccessToken</p>
+<header>
+    <hgroup>
+        <h1>Simple auth</h1>
+        <p>A simple example for how to configure cookie auth and use Supabase as your auth provider</p>
+    </hgroup>
+    @await Component.InvokeAsync("NavBar")
+</header>
+
+<main>
+    <div>Is Logged In? @Model.IsLoggedIn</div>
+</main>

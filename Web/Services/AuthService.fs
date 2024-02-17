@@ -24,10 +24,12 @@ type AuthService
         task {
             // check overloads for other sign in methods
 
-            let signUpOptions =
-                ([ "username", (username :> obj) ] |> dict) :?> Dictionary<string, obj>
+            let signUpOptions: Dictionary<string, obj> =
+                let d = Dictionary<string, obj>()
+                d.Add("username", username :> obj)
+                d
 
-            let! _ = client.Auth.SignUp(email, password, SignUpOptions(Data = signUpOptions))
+            let! session = client.Auth.SignUp(email, password, SignUpOptions(Data = signUpOptions))
             let! authState = customAuthStateProvider.GetAuthenticationStateAsync()
 
             do! accessor.HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, authState.User)

@@ -10,6 +10,14 @@ type AuthenticationController(authService: AuthService) =
     [<HttpGet>]
     member this.SignIn() = this.View()
 
+    [<HttpPost>]
+    [<ValidateAntiForgeryToken>]
+    member this.SignIn([<FromForm>] signIn: SignUpPostModel) =
+        task {
+            do! authService.SignIn(signIn.Email, signIn.Password)
+            return this.View()
+        }
+
 
     [<HttpGet>]
     member this.SignUp() = this.View()
@@ -18,6 +26,6 @@ type AuthenticationController(authService: AuthService) =
     [<ValidateAntiForgeryToken>]
     member this.SignUp([<FromForm>] signUp: SignUpPostModel) =
         task {
-            let! wef = authService.SignUp(signUp.Email, signUp.Username, signUp.Password)
+            do! authService.SignUp(signUp.Email, signUp.Username, signUp.Password)
             return this.View()
         }

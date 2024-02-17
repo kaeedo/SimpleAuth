@@ -13,6 +13,7 @@ open System.IO
 open System.Reflection
 open Web.Services
 open Westwind.AspNetCore.LiveReload
+open Microsoft.AspNetCore.Authentication.Cookies
 
 let registerCompiledViewsAssembly (mvcBuilder: IMvcBuilder) =
     let currentAssembly = Assembly.GetExecutingAssembly()
@@ -48,6 +49,17 @@ let app =
             .AddJsonFile("appsettings.json", true, true)
             .AddJsonFile("appsettings.local.json", true, true)
         |> ignore
+
+        builder.Services
+            .AddAuthentication(fun authenticationOptions ->
+                authenticationOptions.DefaultAuthenticateScheme <- CookieAuthenticationDefaults.AuthenticationScheme
+                authenticationOptions.DefaultChallengeScheme <- CookieAuthenticationDefaults.AuthenticationScheme)
+            .AddCookie(fun options ->
+                options.LoginPath <- "/authentication/signin"
+                options.LogoutPath <- "/authentication/signout")
+        |> ignore
+
+        builder.Services.AddAuthorization() |> ignore
 
         ////////////////////
         // These three services are key to getting auth with Supabase working

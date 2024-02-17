@@ -4,21 +4,11 @@
 </header>
 
 <main>
-    <form>
-        <input
-            type="text"
-            name="username"
-            placeholder="Username"
-            aria-label="Username"
-            autoComplete="username"
-            required/>
-        <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            aria-label="Password"
-            autoComplete="current-password"
-            required/>
+    <form action="@Url.Action("SignIn", "Authentication")" method="POST">
+        @Html.AntiForgeryToken()
+        <input type="text" name="email" placeholder="E-Mail" aria-label="E-Mail" autoComplete="email" required />
+        <input type="password" name="password" placeholder="Password" aria-label="Password"
+            autoComplete="current-password" required />
 
         <button type="submit">
             Login

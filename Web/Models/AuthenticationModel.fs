@@ -6,3 +6,6 @@ type SignUpPostModel = {
     Username: string
     Password: string
 }
+
+[<CLIMutable>]
+type SignInPostModel = { Email: string; Password: string }

@@ -3,17 +3,26 @@
 <nav>
     <ul>
         <li>@Html.ActionLink("Home", "Index", "Home")</li>
-        <li>@Html.ActionLink("Sign in", "SignIn", "Authentication")</li>
-        <li>@Html.ActionLink("Sign up", "SignUp", "Authentication")</li>
         <li>
             @if (Model.IsLoggedIn)
             {
-                @Html.ActionLink("Feel free to enter", "SignUp", "Authentication")
+                @Html.ActionLink("Feel free to enter", "Index", "Secure")
             }
             else
             {
-                @Html.ActionLink("Don't click!", "SignUp", "Authentication")
+                @Html.ActionLink("Don't click!", "Index", "Secure")
             }
         </li>
+    </ul>
+    <ul>
+        @if (Model.IsLoggedIn)
+        {
+            <li>@Html.ActionLink("Logout", "Logout", "Authentication")</li>
+        }
+        else
+        {
+            <li>@Html.ActionLink("Sign in", "SignIn", "Authentication")</li>
+            <li>@Html.ActionLink("Sign up", "SignUp", "Authentication")</li>
+        }
     </ul>
 </nav>

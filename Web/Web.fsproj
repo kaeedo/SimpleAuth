@@ -16,6 +16,7 @@
     <Compile Include="Models\AuthenticationModel.fs"/>
     <Compile Include="Pages\Home\Controller.fs"/>
     <Compile Include="Pages\Authentication\Controller.fs"/>
+    <Compile Include="Pages\Secure\Controller.fs"/>
     <Compile Include="ViewComponents\NavBarViewComponent.fs"/>
 
     <Compile Include="Program.fs"/>

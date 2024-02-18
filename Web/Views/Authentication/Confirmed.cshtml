@@ -1,0 +1,21 @@
+<header>
+    <h1>E-Mail confirmed!</h1>
+</header>
+
+<main>
+    <p>
+        Your e-mail address has been confirmed. You will be redirected shortly. If not,
+        @Html.ActionLink("click here", "Index", "Home")
+    </p>
+</main>
+
+@section Scripts
+{
+    <script defer>
+        if (window.location.hash.includes('access_token')) {
+            window.location.href = window.location.href.replace('#', '?');
+        } else {
+            window.setTimeout(() => window.location.href = '/', 5000);
+        }
+    </script>
+}

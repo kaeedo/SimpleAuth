@@ -75,7 +75,7 @@ let app =
         builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>()
         |> ignore
 
-        builder.Services.AddScoped<AuthService>()
+        builder.Services.AddScoped<SupabaseAuthService>()
         |> ignore
         ////////////////////
 

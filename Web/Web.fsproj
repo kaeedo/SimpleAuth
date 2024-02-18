@@ -10,7 +10,7 @@
   <ItemGroup>
     <None Include="wwwroot\**\*"/>
     <Compile Include="Services\CustomAuthStateProvider.fs"/>
-    <Compile Include="Services\AuthService.fs"/>
+    <Compile Include="Services\SupabaseAuthService.fs" />
     <Compile Include="Models\HomeModel.fs"/>
     <Compile Include="Models\NavBarModel.fs"/>
     <Compile Include="Models\AuthenticationModel.fs"/>

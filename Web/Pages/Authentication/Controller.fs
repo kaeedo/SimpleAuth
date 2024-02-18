@@ -1,10 +1,11 @@
 namespace Web.Pages.Authentication
 
+open System
 open Microsoft.AspNetCore.Mvc
 open Web.Models
 open Web.Services
 
-type AuthenticationController(authService: AuthService) =
+type AuthenticationController(authService: SupabaseAuthService) =
     inherit Controller()
 
     [<HttpGet>]
@@ -32,3 +33,17 @@ type AuthenticationController(authService: AuthService) =
 
     [<HttpGet>]
     member this.ConfirmEmail() = this.View()
+
+    [<HttpGet>]
+    member this.Confirmed() =
+        let queryParams = base.Request.Query
+
+        task {
+            if queryParams |> Seq.isEmpty |> not then
+                let accessToken = queryParams["access_token"]
+                let refreshToken = queryParams["refresh_token"]
+
+                do! authService.SignInWithTokens(accessToken, refreshToken)
+
+            return this.View()
+        }

@@ -27,5 +27,8 @@ type AuthenticationController(authService: AuthService) =
     member this.SignUp([<FromForm>] signUp: SignUpPostModel) =
         task {
             do! authService.SignUp(signUp.Email, signUp.Username, signUp.Password)
-            return this.View()
+            return this.RedirectToAction(nameof this.ConfirmEmail)
         }
+
+    [<HttpGet>]
+    member this.ConfirmEmail() = this.View()

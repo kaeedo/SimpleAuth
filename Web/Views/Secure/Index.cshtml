@@ -1,0 +1,16 @@
+@model Web.Models.SecureModel
+
+<header>
+    <hgroup>
+        <h1>Simple auth</h1>
+    </hgroup>
+    @await Component.InvokeAsync("NavBar")
+</header>
+
+<main>
+    <p>Only a logged in person can see this page. Your details: </p>
+    <ul>
+        <li>E-Mail: @Model.Email</li>
+        <li>Username: @Model.Username</li>
+    </ul>
+</main>

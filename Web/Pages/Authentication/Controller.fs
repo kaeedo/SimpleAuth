@@ -19,7 +19,6 @@ type AuthenticationController(authService: SupabaseAuthService) =
             return this.View()
         }
 
-
     [<HttpGet>]
     member this.SignUp() = this.View()
 
@@ -46,4 +45,12 @@ type AuthenticationController(authService: SupabaseAuthService) =
                 do! authService.SignInWithTokens(accessToken, refreshToken)
 
             return this.View()
+        }
+
+    [<HttpGet>]
+    member this.Logout() =
+        task {
+            do! authService.SignOut()
+
+            return this.RedirectToAction("Index", "Home")
         }

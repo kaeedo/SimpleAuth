@@ -105,6 +105,8 @@ let app =
             .UseHttpsRedirection()
             .UseForwardedHeaders()
             .UseRouting()
+            .UseAuthentication()
+            .UseAuthorization()
             .UseStaticFiles()
         |> ignore
 

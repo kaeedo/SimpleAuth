@@ -1,4 +1,4 @@
-namespace Web.Pages.Authentication
+namespace Web.Controllers
 
 open System
 open Microsoft.AspNetCore.Mvc
@@ -16,7 +16,8 @@ type AuthenticationController(authService: SupabaseAuthService) =
     member this.SignIn([<FromForm>] signIn: SignUpPostModel) =
         task {
             do! authService.SignIn(signIn.Email, signIn.Password)
-            return this.View()
+
+            return this.RedirectToAction("Index", "Home")
         }
 
     [<HttpGet>]

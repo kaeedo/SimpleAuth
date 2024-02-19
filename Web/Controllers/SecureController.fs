@@ -1,4 +1,4 @@
-namespace Web.Pages.Secure
+namespace Web.Controllers
 
 open System
 open System.Text.Json

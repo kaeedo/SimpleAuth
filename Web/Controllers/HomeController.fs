@@ -1,4 +1,4 @@
-namespace Web.Pages.Home
+namespace Web.Controllers
 
 open Microsoft.AspNetCore.Mvc
 open Web.Models
@@ -10,5 +10,8 @@ type HomeController() =
     member this.Index() =
         let ctx = base.HttpContext
 
-        let model = { HomeModel.IsLoggedIn = ctx.User.Identity.IsAuthenticated }
+        let model = {
+            HomeModel.IsLoggedIn = ctx.User.Identity.IsAuthenticated
+        }
+
         this.View(model)

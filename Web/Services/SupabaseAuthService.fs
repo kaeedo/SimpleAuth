@@ -5,20 +5,14 @@ open Microsoft.AspNetCore.Authentication
 open Microsoft.AspNetCore.Authentication.Cookies
 open Microsoft.AspNetCore.Components.Authorization
 open Microsoft.AspNetCore.Http
-open Microsoft.Extensions.Configuration
 open Supabase.Gotrue
 
 type SupabaseAuthService
-    (
-        client: Supabase.Client,
-        customAuthStateProvider: AuthenticationStateProvider,
-        accessor: IHttpContextAccessor,
-        config: IConfiguration
-    ) =
-    member _.SignIn(username: string, password: string) =
+    (client: Supabase.Client, customAuthStateProvider: AuthenticationStateProvider, accessor: IHttpContextAccessor) =
+    member _.SignIn(email: string, password: string) =
         task {
             // check overloads for other sign in methods
-            let! _ = client.Auth.SignIn(username, password)
+            let! _ = client.Auth.SignIn(email, password)
             let! authState = customAuthStateProvider.GetAuthenticationStateAsync()
 
             do! accessor.HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, authState.User)

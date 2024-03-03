@@ -18,10 +18,11 @@ type AuthenticationController(config: IConfiguration, authService: SupabaseAuthS
 
     [<HttpGet>]
     member this.PasswordlessSignUp() =
-        task {
-
-            return this.View()
+        let model = {
+            PasswordlessSignUpModel.PublicKey = config["Passwordless:PublicKey"].ToString()
         }
+
+        this.View(model)
 
     [<HttpPost>]
     member this.PasswordlessSignUpWebAuthn([<FromForm>] username: string) : Task<JsonResult> =

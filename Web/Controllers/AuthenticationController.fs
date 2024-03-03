@@ -1,15 +1,59 @@
 namespace Web.Controllers
 
 open System
+open System.Net.Http
+open System.Text
+open System.Text.Json
+open System.Threading.Tasks
 open Microsoft.AspNetCore.Mvc
+open Microsoft.Extensions.Configuration
 open Web.Models
 open Web.Services
 
-type AuthenticationController(authService: SupabaseAuthService) =
+type AuthenticationController(config: IConfiguration, authService: SupabaseAuthService) =
     inherit Controller()
 
     [<HttpGet>]
     member this.SignIn() = this.View()
+
+    [<HttpGet>]
+    member this.PasswordlessSignUp() =
+        task {
+
+            return this.View()
+        }
+
+    [<HttpPost>]
+    member this.PasswordlessSignUpWebAuthn([<FromForm>] username: string) : Task<JsonResult> =
+        task {
+            let payload = {|
+                userId = Guid.NewGuid
+                username = username
+            |}
+
+            use client = new HttpClient()
+
+            let content = JsonSerializer.Serialize(payload)
+            let content = new StringContent(content, Encoding.UTF8, "application/json")
+
+            let url =
+                config["Passwordless:BaseUrl"].ToString()
+                + "/register/token"
+
+            let secretKey = config["Passwordless:PrivateKey"].ToString()
+
+            client.DefaultRequestHeaders.Add("ApiSecret", secretKey)
+
+            let! response = client.PostAsync(url, content)
+            let! response = response.Content.ReadAsStringAsync()
+
+            let token =
+                JsonSerializer
+                    .Deserialize<{| token: string |}>(response)
+                    .token
+
+            return JsonResult(token)
+        }
 
     [<HttpPost>]
     [<ValidateAntiForgeryToken>]

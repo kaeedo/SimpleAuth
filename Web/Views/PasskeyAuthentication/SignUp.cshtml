@@ -1,7 +1,7 @@
-@model Web.Models.PasswordlessSignUpModel
+@model Web.Models.PasskeyModel
 
 <header>
-    <h1>Sign in</h1>
+    <h1>Passkey Sign Up</h1>
     @await Component.InvokeAsync("NavBar")
 </header>
 
@@ -31,7 +31,7 @@
           const username = e.target.querySelector('input[name="username"]').value;
       
           const response = await fetch(
-              '@Url.Action("PasswordlessSignUpWebAuthn", "Authentication")',
+              '@Url.Action("WebAuthnSignUp", "PasskeyAuthentication")',
               {
                   method: "post",
                   headers: {
@@ -47,10 +47,11 @@
               apiKey: "@Model.PublicKey",
           });
       
-          // Register the token with the end-user's device.
           const { token, error } = await p.register(registerToken);
+          
           if (token) {
-              alert("registered");
+              const url = `@Url.Action("WebAuthnSignIn", "PasskeyAuthentication")?token=${token}`;
+              await htmx.ajax('GET', url)
           } else {
               console.error(error);
           }

@@ -16,7 +16,8 @@
     <Compile Include="Models\AuthenticationModel.fs"/>
     <Compile Include="Models\SecureModel.fs"/>
     <Compile Include="Controllers\HomeController.fs"/>
-    <Compile Include="Controllers\AuthenticationController.fs"/>
+    <Compile Include="Controllers\SupabaseAuthenticationController.fs"/>
+    <Compile Include="Controllers\PasskeyAuthenticationController.fs"/>
     <Compile Include="Controllers\SecureController.fs"/>
     <Compile Include="ViewComponents\NavBarViewComponent.fs"/>
 

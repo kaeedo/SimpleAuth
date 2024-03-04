@@ -1,12 +1,12 @@
-@model Web.Models.PasswordlessSignUpModel
+@model Web.Models.PasskeyModel
 
 <header>
-    <h1>Sign in</h1>
+    <h1>Passkey Login</h1>
     @await Component.InvokeAsync("NavBar")
 </header>
 
 <main hx-disable>
-    <form id="passwordlessSignInForm" method="post">
+    <form hx-on:submit="window.onSignInSubmit(event)" onsubmit="return false">
         <input
             type="text"
             name="username"
@@ -25,7 +25,7 @@
     <script type="module">
       import { Client } from 'https://cdn.passwordless.dev/dist/1.1.0/esm/passwordless.min.mjs';
         
-      document.getElementById('passwordlessSignInForm').addEventListener('submit', async (e) => {
+      window.onSignUpSubmit = async (e) => {
           e.preventDefault();
           const username = e.target.querySelector('input[name="username"]').value
           
@@ -34,14 +34,8 @@
           });
           
           const { token, error } = await p.signinWithAlias(username);
-          // Tip: You can also try p.signinWithDiscoverable();
           
-          const response = await fetch(`@Url.Action("PasswordlessSignInWebAuthn", "Authentication")?token=${token}`);
-          const body = await response.json();
-          
-          if (body.success) {
-              // redirect home
-          }
-      });
+          await htmx.ajax('GET', `@Url.Action("WebAuthnSignIn", "PasskeyAuthentication")?token=${token}`);
+      };
     </script>
 }

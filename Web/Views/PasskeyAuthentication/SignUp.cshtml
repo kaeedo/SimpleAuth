@@ -35,21 +35,37 @@
               {
                   method: "post",
                   headers: {
-                      "Content-Type": "application/x-www-form-urlencoded",
+                      "Content-Type": "application/json",
                   },
-                  body: `username=${encodeURIComponent(username)}`,
+                  body: JSON.stringify({username}),
               }
           );
       
-          const registerToken = await response.json();
+          const { registrationToken, userId } = await response.json();
       
           const p = new Client({
               apiKey: "@Model.PublicKey",
           });
       
-          const { token, error } = await p.register(registerToken);
+          const { token, error } = await p.register(registrationToken);
           
-          if (token) {
+          if (error) {
+              alert('Nope. Check console');
+              console.error(error);
+              return;
+          }
+          
+          const createResponse = await fetch('@Url.Action("CreateUser", "PasskeyAuthentication")', {
+              method: 'post',
+              headers: {
+                  "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ userId, username })
+          });
+          
+          const { success } = await createResponse.json();
+          
+          if (token && success) {
               const url = `@Url.Action("WebAuthnSignIn", "PasskeyAuthentication")?token=${token}`;
               await htmx.ajax('GET', url)
           } else {

@@ -10,7 +10,7 @@ open Microsoft.Extensions.Configuration
 open Web.Models
 open Web.Services
 
-type PasskeyAuthenticationController(config: IConfiguration, authService: SupabaseAuthService) =
+type PasskeyAuthenticationController(config: IConfiguration, passkeyService: PasskeyService, fakeDb: FakeDatabase) =
     inherit Controller()
 
     [<HttpGet>]
@@ -47,10 +47,10 @@ type PasskeyAuthenticationController(config: IConfiguration, authService: Supaba
             let! response = client.PostAsync(url, content)
             let! response = response.Content.ReadAsStringAsync()
 
-            let body = JsonSerializer.Deserialize<{| success: bool; userId: string |}>(response)
+            let body = JsonSerializer.Deserialize<{| success: bool; userId: Guid |}>(response)
 
             if body.success then
-                do! authService.PasswordlessSignIn(body.userId)
+                do! passkeyService.SignIn(body.userId)
 
                 return this.RedirectToAction("Index", "Home")
             else
@@ -58,11 +58,11 @@ type PasskeyAuthenticationController(config: IConfiguration, authService: Supaba
         }
 
     [<HttpPost>]
-    member this.WebAuthnSignUp([<FromForm>] username: string) : Task<JsonResult> =
+    member this.WebAuthnSignUp([<FromBody>] body: {| username: string |}) : Task<JsonResult> =
         task {
             let payload = {|
                 userId = Guid.NewGuid()
-                username = username
+                username = body.username
             |}
 
             use client = new HttpClient()
@@ -86,13 +86,27 @@ type PasskeyAuthenticationController(config: IConfiguration, authService: Supaba
                     .Deserialize<{| token: string |}>(response)
                     .token
 
-            return JsonResult(token)
+            return
+                JsonResult(
+                    {|
+                        registrationToken = token
+                        userId = payload.userId
+                    |}
+                )
         }
+
+    [<HttpPost>]
+    member this.CreateUser([<FromBody>] body: {| userId: Guid; username: string |}) : JsonResult =
+        JsonResult(
+            {|
+                success = fakeDb.CreateUser(body.userId, body.username)
+            |}
+        )
 
     [<HttpGet>]
     member this.Logout() =
         task {
-            do! authService.SignOut()
+            do! passkeyService.SignOut()
 
             return this.RedirectToAction("Index", "Home")
         }

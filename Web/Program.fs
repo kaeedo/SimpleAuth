@@ -79,6 +79,15 @@ let app =
         |> ignore
         ////////////////////
 
+        ////////////////////
+        // Passkey auth service
+        ////////////////////
+        builder.Services.AddTransient<PasskeyService>()
+        |> ignore
+
+        builder.Services.AddSingleton<FakeDatabase>()
+        |> ignore
+
         // This registers a bunch of services we need for Razor
         let mvcBuilder = builder.Services.AddControllersWithViews()
 

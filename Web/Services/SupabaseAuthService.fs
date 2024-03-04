@@ -1,7 +1,6 @@
 namespace Web.Services
 
 open System.Collections.Generic
-open System.Security.Claims
 open Microsoft.AspNetCore.Authentication
 open Microsoft.AspNetCore.Authentication.Cookies
 open Microsoft.AspNetCore.Components.Authorization
@@ -10,23 +9,6 @@ open Supabase.Gotrue
 
 type SupabaseAuthService
     (client: Supabase.Client, customAuthStateProvider: AuthenticationStateProvider, accessor: IHttpContextAccessor) =
-
-    member _.PasswordlessSignIn(userId: string) =
-        task {
-            let identity =
-                ClaimsIdentity(
-                    seq { Claim(ClaimTypes.NameIdentifier, userId) },
-                    CookieAuthenticationDefaults.AuthenticationScheme
-                )
-
-
-            let user = ClaimsPrincipal(identity)
-
-            do! accessor.HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, user)
-
-            return ()
-        }
-
     member _.SignIn(email: string, password: string) =
         task {
             // check overloads for other sign in methods

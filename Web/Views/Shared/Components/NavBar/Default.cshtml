@@ -17,14 +17,14 @@
     <ul>
         @if (Model.IsLoggedIn)
         {
-            <li>@Html.ActionLink("Logout", "Logout", "Authentication")</li>
+            <li>@Html.ActionLink("Logout", "Logout", "SupabaseAuthentication")</li>
         }
         else
         {
-            <li>@Html.ActionLink("Passwordless Sign in", "PasswordlessSignIn", "Authentication")</li>
-            <li>@Html.ActionLink("Passwordless Sign up", "PasswordlessSignUp", "Authentication")</li>
-            <li>@Html.ActionLink("Sign in", "SignIn", "Authentication")</li>
-            <li>@Html.ActionLink("Sign up", "SignUp", "Authentication")</li>
+            <li>@Html.ActionLink("Passkey Sign in", "SignIn", "PasskeyAuthentication")</li>
+            <li>@Html.ActionLink("Passkey Sign up", "SignUp", "PasskeyAuthentication")</li>
+            <li>@Html.ActionLink("Sign in", "SignIn", "SupabaseAuthentication")</li>
+            <li>@Html.ActionLink("Sign up", "SignUp", "SupabaseAuthentication")</li>
         }
     </ul>
 </nav>

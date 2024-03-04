@@ -4,7 +4,7 @@
 </header>
 
 <main>
-    <form action="@Url.Action("SignIn", "Authentication")" method="POST">
+    <form action="@Url.Action("SignIn", "SupabaseAuthentication")" method="POST">
         @Html.AntiForgeryToken()
         <input type="text" name="email" placeholder="E-Mail" aria-label="E-Mail" autoComplete="email" required />
         <input type="password" name="password" placeholder="Password" aria-label="Password"

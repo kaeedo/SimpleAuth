@@ -1,4 +1,4 @@
 namespace Web.Models
 
 
-type SecureModel = { Email: string; Username: string }
+type SecureModel = { UserId: string; Username: string }

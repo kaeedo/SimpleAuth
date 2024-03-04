@@ -1,6 +1,7 @@
 namespace Web.Controllers
 
 open System
+open System.Security.Claims
 open System.Text.Json
 open Microsoft.AspNetCore.Authorization
 open Microsoft.AspNetCore.Mvc
@@ -14,22 +15,29 @@ type SecureController() =
     member this.Index() =
         let user = this.HttpContext.User
 
-        let email =
+        let userId =
             user.Claims
-            |> Seq.find (fun c -> c.Type = "email")
-            |> _.Value
-
-        let metadata =
-            user.Claims
-            |> Seq.find (fun c -> c.Type = "user_metadata")
+            |> Seq.find (fun c ->
+                c.Type = "email"
+                || c.Type = ClaimTypes.NameIdentifier)
             |> _.Value
 
         let username =
-            (JsonSerializer.Deserialize<{| username: string |}>(metadata))
-                .username
+            match
+                user.Claims
+                |> Seq.tryFind (fun c -> c.Type = "user_metadata")
+            with
+            | Some c ->
+                JsonSerializer
+                    .Deserialize<{| username: string |}>(c.Value)
+                    .username
+            | None ->
+                user.Claims
+                |> Seq.find (fun c -> c.Type = ClaimTypes.Name)
+                |> _.Value
 
         let model = {
-            SecureModel.Email = email
+            SecureModel.UserId = userId
             Username = username
         }
 

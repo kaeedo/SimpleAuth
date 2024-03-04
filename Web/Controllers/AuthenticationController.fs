@@ -17,6 +17,14 @@ type AuthenticationController(config: IConfiguration, authService: SupabaseAuthS
     member this.SignIn() = this.View()
 
     [<HttpGet>]
+    member this.PasswordlessSignIn() =
+        let model = {
+            PasswordlessSignUpModel.PublicKey = config["Passwordless:PublicKey"].ToString()
+        }
+
+        this.View(model)
+
+    [<HttpGet>]
     member this.PasswordlessSignUp() =
         let model = {
             PasswordlessSignUpModel.PublicKey = config["Passwordless:PublicKey"].ToString()
@@ -24,12 +32,41 @@ type AuthenticationController(config: IConfiguration, authService: SupabaseAuthS
 
         this.View(model)
 
+    [<HttpGet>]
+    member this.PasswordlessSignInWebAuthn([<FromQuery>] token: string) =
+        task {
+            let content = JsonSerializer.Serialize({| token = token |})
+            let content = new StringContent(content, Encoding.UTF8, "application/json")
+
+            let url =
+                config["Passwordless:BaseUrl"].ToString()
+                + "/signin/verify"
+
+            let secretKey = config["Passwordless:PrivateKey"].ToString()
+
+            use client = new HttpClient()
+            client.DefaultRequestHeaders.Add("ApiSecret", secretKey)
+
+            let! response = client.PostAsync(url, content)
+            let! response = response.Content.ReadAsStringAsync()
+
+            let body = JsonSerializer.Deserialize<{| success: bool; userId: string |}>(response)
+
+            if body.success then
+                do! authService.PasswordlessSignIn(body.userId)
+
+                return this.RedirectToAction("Index", "Home")
+            else
+                return this.RedirectToAction("PasswordlessSignIn", "Authentication")
+        }
+
     [<HttpPost>]
     member this.PasswordlessSignUpWebAuthn([<FromForm>] username: string) : Task<JsonResult> =
         task {
             let payload = {|
-                userId = Guid.NewGuid
+                userId = Guid.NewGuid()
                 username = username
+                aliases = [| username |]
             |}
 
             use client = new HttpClient()

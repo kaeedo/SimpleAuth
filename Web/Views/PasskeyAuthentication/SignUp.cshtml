@@ -7,13 +7,8 @@
 
 <main>
     <form hx-on:submit="window.onSignUpSubmit(event)" onsubmit="return false">
-        <input
-            type="text"
-            name="username"
-            placeholder="Username"
-            aria-label="Username"
-            autoComplete="username"
-            required/>
+        <input type="text" name="username" placeholder="Username" aria-label="Username" autoComplete="username"
+            required />
         <button type="submit">
             Sign Up
         </button>
@@ -23,54 +18,53 @@
 @section Scripts
 {
     <script type="module">
-      import { Client } from 'https://cdn.passwordless.dev/dist/1.1.0/esm/passwordless.min.mjs';
-      
-      window.onSignUpSubmit = async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const username = e.target.querySelector('input[name="username"]').value;
-      
-          const response = await fetch(
-              '@Url.Action("WebAuthnSignUp", "PasskeyAuthentication")',
-              {
-                  method: "post",
-                  headers: {
-                      "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({username}),
-              }
-          );
-      
-          const { registrationToken, userId } = await response.json();
-      
-          const p = new Client({
-              apiKey: "@Model.PublicKey",
-          });
-      
-          const { token, error } = await p.register(registrationToken);
-          
-          if (error) {
-              alert('Nope. Check console');
-              console.error(error);
-              return;
-          }
-          
-          const createResponse = await fetch('@Url.Action("CreateUser", "PasskeyAuthentication")', {
-              method: 'post',
-              headers: {
-                  "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ userId, username })
-          });
-          
-          const { success } = await createResponse.json();
-          
-          if (token && success) {
-              const url = `@Url.Action("WebAuthnSignIn", "PasskeyAuthentication")?token=${token}`;
-              await htmx.ajax('GET', url)
-          } else {
-              console.error(error);
-          }
-      };
+        import { Client } from 'https://cdn.passwordless.dev/dist/1.1.0/esm/passwordless.min.mjs';
+
+        window.onSignUpSubmit = async (e) => {
+            e.preventDefault();
+            const username = e.target.querySelector('input[name="username"]').value;
+
+            const response = await fetch(
+                '@Url.Action("WebAuthnSignUp", "PasskeyAuthentication")',
+                {
+                    method: "post",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ username }),
+                }
+            );
+
+            const { registrationToken, userId } = await response.json();
+
+            const p = new Client({
+                apiKey: "@Model.PublicKey",
+            });
+
+            const { token, error } = await p.register(registrationToken);
+
+            if (error) {
+                alert('Nope. Check console');
+                console.error(error);
+                return;
+            }
+
+            const createResponse = await fetch('@Url.Action("CreateUser", "PasskeyAuthentication")', {
+                method: 'post',
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ userId, username })
+            });
+
+            const { success } = await createResponse.json();
+
+            if (token && success) {
+                const url = `@Url.Action("WebAuthnSignIn", "PasskeyAuthentication")?token=${token}`;
+                await htmx.ajax('GET', url)
+            } else {
+                console.error(error);
+            }
+        };
     </script>
 }

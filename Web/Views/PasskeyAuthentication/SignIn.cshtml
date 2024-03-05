@@ -7,13 +7,8 @@
 
 <main hx-disable>
     <form hx-on:submit="window.onSignInSubmit(event)" onsubmit="return false">
-        <input
-            type="text"
-            name="username"
-            placeholder="Username"
-            aria-label="Username"
-            autoComplete="username"
-            required/>
+        <input type="text" name="username" placeholder="Username" aria-label="Username" autoComplete="username"
+            required />
         <button type="submit">
             Login
         </button>
@@ -23,20 +18,19 @@
 @section Scripts
 {
     <script type="module">
-      import { Client } from 'https://cdn.passwordless.dev/dist/1.1.0/esm/passwordless.min.mjs';
-        
-      window.onSignInSubmit = async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const username = e.target.querySelector('input[name="username"]').value
-          
-          const p = new Client({
-            apiKey: '@Model.PublicKey'
-          });
-          
-          const { token, error } = await p.signinWithAlias(username);
-          
-          await htmx.ajax('GET', `@Url.Action("WebAuthnSignIn", "PasskeyAuthentication")?token=${token}`);
-      };
+        import { Client } from 'https://cdn.passwordless.dev/dist/1.1.0/esm/passwordless.min.mjs';
+
+        window.onSignInSubmit = async (e) => {
+            e.preventDefault();
+            const username = e.target.querySelector('input[name="username"]').value
+
+            const p = new Client({
+                apiKey: '@Model.PublicKey'
+            });
+
+            const { token, error } = await p.signinWithAlias(username);
+
+            await htmx.ajax('GET', `@Url.Action("WebAuthnSignIn", "PasskeyAuthentication")?token=${token}`);
+        };
     </script>
 }

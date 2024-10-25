@@ -80,10 +80,11 @@ let app =
         ////////////////////
 
         ////////////////////
-        // Passkey auth service
+        // Passwordless auth service
         ////////////////////
-        builder.Services.AddTransient<PasskeyService>()
+        builder.Services.AddTransient<PasswordlessService>()
         |> ignore
+        ////////////////////
 
         builder.Services.AddSingleton<FakeDatabase>()
         |> ignore

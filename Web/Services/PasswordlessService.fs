@@ -6,7 +6,7 @@ open Microsoft.AspNetCore.Authentication
 open Microsoft.AspNetCore.Authentication.Cookies
 open Microsoft.AspNetCore.Http
 
-type PasskeyService(accessor: IHttpContextAccessor, fakeDb: FakeDatabase) =
+type PasswordlessService(accessor: IHttpContextAccessor, fakeDb: FakeDatabase) =
     member _.SignIn(userId: Guid) =
         task {
             let username = fakeDb.GetUser(userId)

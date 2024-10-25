@@ -1,14 +1,14 @@
-@model Web.Models.PasskeyModel
+@model Web.Models.PasswordlessModel
 
 <header>
-    <h1>Passkey Login</h1>
+    <h1>Passwordless Login</h1>
     @await Component.InvokeAsync("NavBar")
 </header>
 
 <main hx-disable>
     <form hx-on:submit="window.onSignInSubmit(event)" onsubmit="return false">
         <input type="text" name="username" placeholder="Username" aria-label="Username" autoComplete="username"
-            required />
+               required/>
         <button type="submit">
             Login
         </button>
@@ -30,7 +30,7 @@
 
             const { token, error } = await p.signinWithAlias(username);
 
-            await htmx.ajax('GET', `@Url.Action("WebAuthnSignIn", "PasskeyAuthentication")?token=${token}`);
+            await htmx.ajax('GET', `@Url.Action("WebAuthnSignIn", "PasswordlessAuthentication")?token=${token}`);
         };
     </script>
 }

@@ -8,39 +8,39 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="wwwroot\**\*"/>
-    <Compile Include="Services\CustomAuthStateProvider.fs"/>
+    <None Include="wwwroot\**\*" />
+    <Compile Include="Services\CustomAuthStateProvider.fs" />
     <Compile Include="Services\SupabaseAuthService.fs" />
-    <Compile Include="Services\FakeDatabase.fs"/>
-    <Compile Include="Services\PasskeyService.fs"/>
-    <Compile Include="Models\HomeModel.fs"/>
-    <Compile Include="Models\NavBarModel.fs"/>
-    <Compile Include="Models\AuthenticationModel.fs"/>
-    <Compile Include="Models\SecureModel.fs"/>
-    <Compile Include="Controllers\HomeController.fs"/>
-    <Compile Include="Controllers\SupabaseAuthenticationController.fs"/>
-    <Compile Include="Controllers\PasskeyAuthenticationController.fs"/>
-    <Compile Include="Controllers\SecureController.fs"/>
-    <Compile Include="ViewComponents\NavBarViewComponent.fs"/>
+    <Compile Include="Services\FakeDatabase.fs" />
+    <Compile Include="Services\PasswordlessService.fs" />
+    <Compile Include="Models\HomeModel.fs" />
+    <Compile Include="Models\NavBarModel.fs" />
+    <Compile Include="Models\AuthenticationModel.fs" />
+    <Compile Include="Models\SecureModel.fs" />
+    <Compile Include="Controllers\HomeController.fs" />
+    <Compile Include="Controllers\SupabaseAuthenticationController.fs" />
+    <Compile Include="Controllers\PasswordlessAuthenticationController.fs" />
+    <Compile Include="Controllers\SecureController.fs" />
+    <Compile Include="ViewComponents\NavBarViewComponent.fs" />
 
-    <Compile Include="Program.fs"/>
+    <Compile Include="Program.fs" />
   </ItemGroup>
 
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="8.0.1"/>
-    <PackageReference Update="FSharp.Core" Version="8.0.100"/>
-    <PackageReference Include="Passwordless.AspNetCore" Version="2.0.0-beta6"/>
-    <PackageReference Include="supabase-csharp" Version="0.15.0"/>
-    <PackageReference Include="Westwind.AspNetCore.LiveReload" Version="0.5.0"/>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="8.0.1" />
+    <PackageReference Update="FSharp.Core" Version="8.0.100" />
+    <PackageReference Include="Passwordless.AspNetCore" Version="2.0.0-beta6" />
+    <PackageReference Include="supabase-csharp" Version="0.15.0" />
+    <PackageReference Include="Westwind.AspNetCore.LiveReload" Version="0.5.0" />
   </ItemGroup>
 
   <!-- This group contains upgrades to razor components that are lost via suboptimal transitive dependencies. -->
   <ItemGroup Label="RazorDeps">
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.Extensions" Version="6.0.26"/>
-    <PackageReference Include="Microsoft.AspNetCore.Razor.Language" Version="6.0.26"/>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0"/>
-    <PackageReference Include="Microsoft.CodeAnalysis.Razor" Version="6.0.26"/>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.Extensions" Version="6.0.26" />
+    <PackageReference Include="Microsoft.AspNetCore.Razor.Language" Version="6.0.26" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Razor" Version="6.0.26" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -49,10 +49,10 @@
 
   <Target Name="CopyViewsDllAfterPublish" AfterTargets="AfterPublish">
     <ItemGroup>
-      <CompiledRazorViews Include="$(OutputPath)\*.Views.*"/>
+      <CompiledRazorViews Include="$(OutputPath)\*.Views.*" />
     </ItemGroup>
-    <Message Importance="High" Text="Copying compiled razor views to publish directory: @(CompiledRazorViews)"/>
-    <Copy SourceFiles="@(CompiledRazorViews)" DestinationFolder="$(PublishDir)"/>
+    <Message Importance="High" Text="Copying compiled razor views to publish directory: @(CompiledRazorViews)" />
+    <Copy SourceFiles="@(CompiledRazorViews)" DestinationFolder="$(PublishDir)" />
   </Target>
 
 </Project>

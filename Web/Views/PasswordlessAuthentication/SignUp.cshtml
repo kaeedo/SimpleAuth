@@ -1,14 +1,14 @@
-@model Web.Models.PasskeyModel
+@model Web.Models.PasswordlessModel
 
 <header>
-    <h1>Passkey Sign Up</h1>
+    <h1>Passwordless Sign Up</h1>
     @await Component.InvokeAsync("NavBar")
 </header>
 
 <main>
     <form hx-on:submit="window.onSignUpSubmit(event)" onsubmit="return false">
         <input type="text" name="username" placeholder="Username" aria-label="Username" autoComplete="username"
-            required />
+               required/>
         <button type="submit">
             Sign Up
         </button>
@@ -25,7 +25,7 @@
             const username = e.target.querySelector('input[name="username"]').value;
 
             const response = await fetch(
-                '@Url.Action("WebAuthnSignUp", "PasskeyAuthentication")',
+                '@Url.Action("WebAuthnSignUp", "PasswordlessAuthentication")',
                 {
                     method: "post",
                     headers: {
@@ -49,7 +49,7 @@
                 return;
             }
 
-            const createResponse = await fetch('@Url.Action("CreateUser", "PasskeyAuthentication")', {
+            const createResponse = await fetch('@Url.Action("CreateUser", "PasswordlessAuthentication")', {
                 method: 'post',
                 headers: {
                     "Content-Type": "application/json",
@@ -60,7 +60,7 @@
             const { success } = await createResponse.json();
 
             if (token && success) {
-                const url = `@Url.Action("WebAuthnSignIn", "PasskeyAuthentication")?token=${token}`;
+                const url = `@Url.Action("WebAuthnSignIn", "PasswordlessAuthentication")?token=${token}`;
                 await htmx.ajax('GET', url)
             } else {
                 console.error(error);

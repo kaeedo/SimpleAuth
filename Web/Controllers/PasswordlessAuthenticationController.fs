@@ -10,13 +10,14 @@ open Microsoft.Extensions.Configuration
 open Web.Models
 open Web.Services
 
-type PasskeyAuthenticationController(config: IConfiguration, passkeyService: PasskeyService, fakeDb: FakeDatabase) =
+type PasswordlessAuthenticationController
+    (config: IConfiguration, passwordlessService: PasswordlessService, fakeDb: FakeDatabase) =
     inherit Controller()
 
     [<HttpGet>]
     member this.SignIn() =
         let model = {
-            PasskeyModel.PublicKey = config["Passwordless:PublicKey"].ToString()
+            PasswordlessModel.PublicKey = config["Passwordless:PublicKey"].ToString()
         }
 
         this.View(model)
@@ -24,7 +25,7 @@ type PasskeyAuthenticationController(config: IConfiguration, passkeyService: Pas
     [<HttpGet>]
     member this.SignUp() =
         let model = {
-            PasskeyModel.PublicKey = config["Passwordless:PublicKey"].ToString()
+            PasswordlessModel.PublicKey = config["Passwordless:PublicKey"].ToString()
         }
 
         this.View(model)
@@ -50,7 +51,7 @@ type PasskeyAuthenticationController(config: IConfiguration, passkeyService: Pas
             let body = JsonSerializer.Deserialize<{| success: bool; userId: Guid |}>(response)
 
             if body.success then
-                do! passkeyService.SignIn(body.userId)
+                do! passwordlessService.SignIn(body.userId)
 
                 return this.RedirectToAction("Index", "Home")
             else
@@ -106,7 +107,7 @@ type PasskeyAuthenticationController(config: IConfiguration, passkeyService: Pas
     [<HttpGet>]
     member this.Logout() =
         task {
-            do! passkeyService.SignOut()
+            do! passwordlessService.SignOut()
 
             return this.RedirectToAction("Index", "Home")
         }

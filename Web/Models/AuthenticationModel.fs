@@ -10,4 +10,4 @@ type SignUpPostModel = {
 [<CLIMutable>]
 type SignInPostModel = { Email: string; Password: string }
 
-type PasskeyModel = { PublicKey: string }
+type PasswordlessModel = { PublicKey: string }

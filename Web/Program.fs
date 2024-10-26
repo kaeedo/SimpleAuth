@@ -89,6 +89,9 @@ let app =
         builder.Services.AddSingleton<FakeDatabase>()
         |> ignore
 
+        builder.Services.AddSingleton<PasskeyFakeDatabase>()
+        |> ignore
+
         // This registers a bunch of services we need for Razor
         let mvcBuilder = builder.Services.AddControllersWithViews()
 

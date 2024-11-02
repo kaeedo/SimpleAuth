@@ -2,6 +2,7 @@ namespace Web.Services
 
 open System
 open System.Collections.Concurrent
+open System.Threading.Tasks
 open Fido2NetLib
 open Fido2NetLib.Objects
 
@@ -14,7 +15,7 @@ type StoredCredential = {
     IsBackedUp: bool
     AttestationObject: byte array
     AttestationClientDataJson: byte array
-    DevicePublicKeys: byte array list
+    mutable DevicePublicKeys: byte array list
     UserId: byte array
     UserHandle: byte array
     AttestationFormat: string
@@ -22,12 +23,15 @@ type StoredCredential = {
     AaGuid: Guid
 } with
 
-    member this.Descriptor() =
+    member this.Descriptor =
         PublicKeyCredentialDescriptor(PublicKeyCredentialType.PublicKey, this.Id, this.Transports)
+
+    member this.AddDevicePublicKey key =
+        this.DevicePublicKeys <- key :: this.DevicePublicKeys
 
 type PasskeyFakeDatabase() =
     let storedUsers = ConcurrentDictionary<string, Fido2User>()
-    let storedCredentials: StoredCredential list = []
+    let mutable storedCredentials: StoredCredential list = []
 
     member this.GetOrAddUser(username: string, addCallback: unit -> Fido2User) : Fido2User =
         storedUsers.GetOrAdd(username, addCallback ())
@@ -39,43 +43,54 @@ type PasskeyFakeDatabase() =
         | true -> Some user
         | false -> FSharp.Core.Option.None
 
-(*
+    member this.GetCredentialsByUser(user: Fido2User) : StoredCredential list =
+        storedCredentials
+        |> List.filter (_.UserId.AsSpan().SequenceEqual(user.Id))
 
-    public List<StoredCredential> GetCredentialsByUser(Fido2User user)
-    {
-        return _storedCredentials.Where(c => c.UserId.AsSpan().SequenceEqual(user.Id)).ToList();
-    }
+    member this.GetCredentialById(id: byte array) : StoredCredential option =
+        storedCredentials
+        |> List.tryFind (_.Descriptor.Id.AsSpan().SequenceEqual(id))
 
-    public StoredCredential? GetCredentialById(byte[] id)
-    {
-        return _storedCredentials.FirstOrDefault(c => c.Descriptor.Id.AsSpan().SequenceEqual(id));
-    }
+    member this.GetCredentialsByUserHandleAsync(userHandle: byte array) : Task<StoredCredential list> =
+        task {
+            return
+                storedCredentials
+                |> List.filter (_.UserHandle.AsSpan().SequenceEqual(userHandle))
+        }
 
-    public Task<List<StoredCredential>> GetCredentialsByUserHandleAsync(byte[] userHandle, CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult(_storedCredentials.Where(c => c.UserHandle.AsSpan().SequenceEqual(userHandle)).ToList());
-    }
+    // don't need
+    member this.UpdateCounter(credentialId: byte array, counter: uint) : unit =
+        let credentialIndex =
+            storedCredentials
+            |> List.findIndex (_.Descriptor.Id.AsSpan().SequenceEqual(credentialId))
 
-    public void UpdateCounter(byte[] credentialId, uint counter)
-    {
-        var cred = _storedCredentials.First(c => c.Descriptor.Id.AsSpan().SequenceEqual(credentialId));
-        cred.SignCount = counter;
-    }
+        let credential = {
+            storedCredentials[credentialIndex] with
+                SignCount = counter
+        }
 
-    public void AddCredentialToUser(Fido2User user, StoredCredential credential)
-    {
-        credential.UserId = user.Id;
-        _storedCredentials.Add(credential);
-    }
+        let updatedCredentials =
+            storedCredentials
+            |> List.updateAt credentialIndex credential
 
-    public Task<List<Fido2User>> GetUsersByCredentialIdAsync(byte[] credentialId, CancellationToken cancellationToken = default)
-    {
-        // our in-mem storage does not allow storing multiple users for a given credentialId. Yours shouldn't either.
-        var cred = _storedCredentials.FirstOrDefault(c => c.Descriptor.Id.AsSpan().SequenceEqual(credentialId));
+        storedCredentials <- updatedCredentials
 
-        if (cred is null)
-            return Task.FromResult(new List<Fido2User>());
+    member this.AddCredentialToUser(user: Fido2User, credential: StoredCredential) : unit =
+        let credential = { credential with UserId = user.Id }
+        storedCredentials <- credential :: storedCredentials
 
-        return Task.FromResult(_storedUsers.Where(u => u.Value.Id.SequenceEqual(cred.UserId)).Select(u => u.Value).ToList());
-    }
-    *)
+    member this.GetUsersByCredentialIdAsync(credentialId: byte array) : Task<Fido2User list> =
+        task {
+            let credential =
+                storedCredentials
+                |> List.tryFind (_.Descriptor.Id.AsSpan().SequenceEqual(credentialId))
+
+            match credential with
+            | None -> return []
+            | Some c ->
+                return
+                    storedUsers
+                    |> Seq.filter (_.Value.Id.AsSpan().SequenceEqual(c.UserId))
+                    |> Seq.map (_.Value)
+                    |> Seq.toList
+        }

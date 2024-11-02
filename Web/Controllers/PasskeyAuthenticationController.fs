@@ -1,14 +1,18 @@
 namespace Web.Controllers
 
 open System
+open System.Text
+open System.Threading
 open Fido2NetLib
+open Fido2NetLib.Objects
+open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Mvc
 open Microsoft.Extensions.Configuration
 open Web.Services
 
-type PasskeyAuthenticationController(config: IConfiguration, fakeDb: PasskeyFakeDatabase, fido2: IFido2) =
+type PasskeyAuthenticationController
+    (ctxAccessor: HttpContextAccessor, config: IConfiguration, fakeDb: PasskeyFakeDatabase, fido2: IFido2) =
     inherit Controller()
-
 
     [<HttpPost>]
     //[Route("/makeCredentialOptions")]
@@ -22,202 +26,174 @@ type PasskeyAuthenticationController(config: IConfiguration, fakeDb: PasskeyFake
             [<FromForm>] userVerification: string
         ) =
         task {
-            let id = Guid.NewGuid()
-
             let user =
-                Fido2User(DisplayName = displayName, Name = username, Id = id.ToByteArray())
+                fakeDb.GetOrAddUser(
+                    username,
+                    fun () ->
+                        Fido2User(DisplayName = displayName, Name = username, Id = Encoding.UTF8.GetBytes(username))
+                )
 
-            (*let success = fakeDb.CreateUser(id, username)
+            let existingKeys =
+                fakeDb.GetCredentialsByUser(user)
+                |> List.map _.Descriptor
 
-            let existingKeys = fakeDb.GetCredentialsById(id)*)
+            let authenticatorSelection =
+                let attachment =
+                    if String.IsNullOrEmpty(authType) then
+                        FSharp.Core.Option.None
+                    else
+                        Some(authType.ToEnum<AuthenticatorAttachment>())
 
-            return this.RedirectToAction("")
+                AuthenticatorSelection(
+                    ResidentKey = residentKey.ToEnum<ResidentKeyRequirement>(),
+                    UserVerification = userVerification.ToEnum<UserVerificationRequirement>(),
+                    AuthenticatorAttachment = (attachment |> Option.toNullable)
+                )
+
+            let extensions =
+                AuthenticationExtensionsClientInputs(
+                    Extensions = true,
+                    UserVerificationMethod = true,
+                    DevicePubKey = AuthenticationExtensionsDevicePublicKeyInputs(Attestation = attType),
+                    CredProps = true
+                )
+
+            let options =
+                fido2.RequestNewCredential(
+                    user,
+                    existingKeys,
+                    authenticatorSelection,
+                    attType.ToEnum<AttestationConveyancePreference>(),
+                    extensions
+                )
+
+            ctxAccessor.HttpContext.Session.SetString("fido2.attestationOptions", options.ToJson())
+
+            return this.Json(options)
         }
-(*{
-        try
-        {
 
-            if (string.IsNullOrEmpty(username))
-            {
-                username = $"{displayName} (Usernameless user created at {DateTime.UtcNow})";
+    [<HttpPost>]
+    //[<Route("/makeCredential")>]
+    member this.MakeCredential([<FromBody>] attestationResponse: AuthenticatorAttestationRawResponse) =
+        task {
+            let jsonOptions =
+                ctxAccessor.HttpContext.Session.GetString("fido2.attestationOptions")
+
+            let options = CredentialCreateOptions.FromJson(jsonOptions)
+
+            let callback =
+                IsCredentialIdUniqueToUserAsyncDelegate
+                    (fun
+                        (credentialIdUserParams: IsCredentialIdUniqueToUserParams)
+                        (cancellationToken: CancellationToken) ->
+                        task {
+                            let! users = fakeDb.GetUsersByCredentialIdAsync(credentialIdUserParams.CredentialId)
+
+                            return not (users.Length > 0)
+                        })
+
+            let! credential = fido2.MakeNewCredentialAsync(attestationResponse, options, callback)
+            let credential = credential.Result
+
+            let storedCredential: StoredCredential = {
+                Id = credential.Id
+                PublicKey = credential.PublicKey
+                UserHandle = credential.User.Id
+                SignCount = credential.SignCount
+                AttestationFormat = credential.AttestationFormat
+                RegDate = DateTimeOffset.UtcNow
+                AaGuid = credential.AaGuid
+                Transports = credential.Transports
+                IsBackupEligible = credential.IsBackupEligible
+                IsBackedUp = credential.IsBackedUp
+                AttestationObject = credential.AttestationObject
+                AttestationClientDataJson = credential.AttestationClientDataJson
+                DevicePublicKeys = [ credential.DevicePublicKey ]
+
+                UserId = [||]
             }
 
-            // 1. Get user from DB by username (in our example, auto create missing users)
-            var user = DemoStorage.GetOrAddUser(username, () => new Fido2User
-            {
-                DisplayName = displayName,
-                Name = username,
-                Id = Encoding.UTF8.GetBytes(username) // byte representation of userID is required
-            });
+            fakeDb.AddCredentialToUser(options.User, storedCredential)
 
-            // 2. Get user existing keys by username
-            var existingKeys = DemoStorage.GetCredentialsByUser(user).Select(c => c.Descriptor).ToList();
-
-            // 3. Create options
-            var authenticatorSelection = new AuthenticatorSelection
-            {
-                ResidentKey = residentKey.ToEnum<ResidentKeyRequirement>(),
-                UserVerification = userVerification.ToEnum<UserVerificationRequirement>()
-            };
-
-            if (!string.IsNullOrEmpty(authType))
-                authenticatorSelection.AuthenticatorAttachment = authType.ToEnum<AuthenticatorAttachment>();
-
-            var exts = new AuthenticationExtensionsClientInputs()
-            {
-                Extensions = true,
-                UserVerificationMethod = true,
-                DevicePubKey = new AuthenticationExtensionsDevicePublicKeyInputs() { Attestation = attType },
-                CredProps = true
-            };
-
-            var options = _fido2.RequestNewCredential(user, existingKeys, authenticatorSelection, attType.ToEnum<AttestationConveyancePreference>(), exts);
-
-            // 4. Temporarily store options, session/in-memory cache/redis/db
-            HttpContext.Session.SetString("fido2.attestationOptions", options.ToJson());
-
-            // 5. return options to client
-            return Json(options);
-        }
-        catch (Exception e)
-        {
-            return Json(new { Status = "error", ErrorMessage = FormatException(e) });
-        }
-    }
-
-    [HttpPost]
-    [Route("/makeCredential")]
-    public async Task<JsonResult> MakeCredential([FromBody] AuthenticatorAttestationRawResponse attestationResponse, CancellationToken cancellationToken)
-    {
-        try
-        {
-            // 1. get the options we sent the client
-            var jsonOptions = HttpContext.Session.GetString("fido2.attestationOptions");
-            var options = CredentialCreateOptions.FromJson(jsonOptions);
-
-            // 2. Create callback so that lib can verify credential id is unique to this user
-            IsCredentialIdUniqueToUserAsyncDelegate callback = static async (args, cancellationToken) =>
-            {
-                var users = await DemoStorage.GetUsersByCredentialIdAsync(args.CredentialId, cancellationToken);
-                if (users.Count > 0)
-                    return false;
-
-                return true;
-            };
-
-            // 2. Verify and make the credentials
-            var credential = await _fido2.MakeNewCredentialAsync(attestationResponse, options, callback, cancellationToken: cancellationToken);
-
-            // 3. Store the credentials in db
-            DemoStorage.AddCredentialToUser(options.User, new StoredCredential
-            {
-                Id = credential.Id,
-                PublicKey = credential.PublicKey,
-                UserHandle = credential.User.Id,
-                SignCount = credential.SignCount,
-                AttestationFormat = credential.AttestationFormat,
-                RegDate = DateTimeOffset.UtcNow,
-                AaGuid = credential.AaGuid,
-                Transports = credential.Transports,
-                IsBackupEligible = credential.IsBackupEligible,
-                IsBackedUp = credential.IsBackedUp,
-                AttestationObject = credential.AttestationObject,
-                AttestationClientDataJson = credential.AttestationClientDataJson,
-                DevicePublicKeys = [credential.DevicePublicKey]
-            });
-
-            // 4. return "ok" to the client
-            return Json(credential);
-        }
-        catch (Exception e)
-        {
-            return Json(new { status = "error", errorMessage = FormatException(e) });
-        }
-    }
-
-    [HttpPost]
-    [Route("/assertionOptions")]
-    public ActionResult AssertionOptionsPost([FromForm] string username, [FromForm] string userVerification)
-    {
-        try
-        {
-            var existingCredentials = new List<PublicKeyCredentialDescriptor>();
-
-            if (!string.IsNullOrEmpty(username))
-            {
-                // 1. Get user from DB
-                var user = DemoStorage.GetUser(username) ?? throw new ArgumentException("Username was not registered");
-
-                // 2. Get registered credentials from database
-                existingCredentials = DemoStorage.GetCredentialsByUser(user).Select(c => c.Descriptor).ToList();
-            }
-
-            var exts = new AuthenticationExtensionsClientInputs()
-            {
-                Extensions = true,
-                UserVerificationMethod = true,
-                DevicePubKey = new AuthenticationExtensionsDevicePublicKeyInputs()
-            };
-
-            // 3. Create options
-            var uv = string.IsNullOrEmpty(userVerification) ? UserVerificationRequirement.Discouraged : userVerification.ToEnum<UserVerificationRequirement>();
-            var options = _fido2.GetAssertionOptions(
-                existingCredentials,
-                uv,
-                exts
-            );
-
-            // 4. Temporarily store options, session/in-memory cache/redis/db
-            HttpContext.Session.SetString("fido2.assertionOptions", options.ToJson());
-
-            // 5. Return options to client
-            return Json(options);
+            return this.Json(credential)
         }
 
-        catch (Exception e)
-        {
-            return Json(new { Status = "error", ErrorMessage = FormatException(e) });
+    [<HttpPost>]
+    //  [<Route("/assertionOptions")>]
+    member this.AssertionOptionsPost([<FromForm>] username: string, [<FromForm>] userVerification: string) =
+        task {
+            let existingCredentials =
+                if String.IsNullOrWhiteSpace(username) then
+                    []
+                else
+                    let user = fakeDb.GetUser(username)
+
+                    fakeDb.GetCredentialsByUser(user.Value)
+                    |> List.map (_.Descriptor)
+
+            let extensions =
+                AuthenticationExtensionsClientInputs(
+                    Extensions = true,
+                    UserVerificationMethod = true,
+                    DevicePubKey = AuthenticationExtensionsDevicePublicKeyInputs()
+                )
+
+            let uv =
+                if String.IsNullOrEmpty(userVerification) then
+                    UserVerificationRequirement.Discouraged
+                else
+                    userVerification.ToEnum<UserVerificationRequirement>()
+
+            let options = fido2.GetAssertionOptions(existingCredentials, uv, extensions)
+
+            ctxAccessor.HttpContext.Session.SetString("fido2.assertionOptions", options.ToJson())
+
+            return this.Json(options)
         }
-    }
 
-    [HttpPost]
-    [Route("/makeAssertion")]
-    public async Task<JsonResult> MakeAssertion([FromBody] AuthenticatorAssertionRawResponse clientResponse, CancellationToken cancellationToken)
-    {
-        try
-        {
-            // 1. Get the assertion options we sent the client
-            var jsonOptions = HttpContext.Session.GetString("fido2.assertionOptions");
-            var options = AssertionOptions.FromJson(jsonOptions);
+    [<HttpPost>]
+    // [<Route("/makeAssertion")>]
+    member this.MakeAssertion([<FromBody>] clientResponse: AuthenticatorAssertionRawResponse) =
+        task {
+            let jsonOptions =
+                ctxAccessor.HttpContext.Session.GetString("fido2.assertionOptions")
 
-            // 2. Get registered credential from database
-            var creds = DemoStorage.GetCredentialById(clientResponse.Id) ?? throw new Exception("Unknown credentials");
+            let options = AssertionOptions.FromJson(jsonOptions)
 
-            // 3. Get credential counter from database
-            var storedCounter = creds.SignCount;
+            let credentials = fakeDb.GetCredentialById(clientResponse.Id).Value
 
-            // 4. Create callback to check if the user handle owns the credentialId
-            IsUserHandleOwnerOfCredentialIdAsync callback = static async (args, cancellationToken) =>
-            {
-                var storedCreds = await DemoStorage.GetCredentialsByUserHandleAsync(args.UserHandle, cancellationToken);
-                return storedCreds.Exists(c => c.Descriptor.Id.SequenceEqual(args.CredentialId));
-            };
+            let callback =
+                IsUserHandleOwnerOfCredentialIdAsync
+                    (fun
+                        (ownerOfCredentials: IsUserHandleOwnerOfCredentialIdParams)
+                        (cancellationToken: CancellationToken) ->
+                        task {
+                            let! storedCredentials =
+                                fakeDb.GetCredentialsByUserHandleAsync(ownerOfCredentials.UserHandle)
 
-            // 5. Make the assertion
-            var res = await _fido2.MakeAssertionAsync(clientResponse, options, creds.PublicKey, creds.DevicePublicKeys, storedCounter, callback, cancellationToken: cancellationToken);
+                            return
+                                storedCredentials
+                                |> List.exists (
+                                    _.Descriptor.Id
+                                        .AsSpan()
+                                        .SequenceEqual(ownerOfCredentials.CredentialId)
+                                )
+                        })
 
-            // 6. Store the updated counter
-            DemoStorage.UpdateCounter(res.CredentialId, res.SignCount);
+            let! result =
+                fido2.MakeAssertionAsync(
+                    clientResponse,
+                    options,
+                    credentials.PublicKey,
+                    credentials.DevicePublicKeys,
+                    credentials.SignCount,
+                    callback
+                )
 
-            if (res.DevicePublicKey is not null)
-                creds.DevicePublicKeys.Add(res.DevicePublicKey);
+            fakeDb.UpdateCounter(result.CredentialId, result.SignCount)
 
-            // 7. return OK to client
-            return Json(res);
+            if result.DevicePublicKey <> null then
+                credentials.AddDevicePublicKey result.DevicePublicKey
+
+            return this.Json(result)
         }
-        catch (Exception e)
-        {
-            return Json(new { Status = "error", ErrorMessage = FormatException(e) });
-        }
-    }
-    *)

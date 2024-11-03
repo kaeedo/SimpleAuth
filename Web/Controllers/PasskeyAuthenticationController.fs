@@ -7,15 +7,18 @@ open Fido2NetLib
 open Fido2NetLib.Objects
 open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Mvc
-open Microsoft.Extensions.Configuration
 open Web.Services
 
-type PasskeyAuthenticationController
-    (ctxAccessor: HttpContextAccessor, config: IConfiguration, fakeDb: PasskeyFakeDatabase, fido2: IFido2) =
+type PasskeyAuthenticationController(ctxAccessor: IHttpContextAccessor, fakeDb: PasskeyFakeDatabase, fido2: IFido2) =
     inherit Controller()
 
+    [<HttpGet>]
+    member this.SignUp() = this.View()
+
+    [<HttpGet>]
+    member this.SignIn() = this.View()
+
     [<HttpPost>]
-    //[Route("/makeCredentialOptions")]
     member this.MakeCredentialOptions
         (
             [<FromForm>] username: string,
@@ -73,7 +76,6 @@ type PasskeyAuthenticationController
         }
 
     [<HttpPost>]
-    //[<Route("/makeCredential")>]
     member this.MakeCredential([<FromBody>] attestationResponse: AuthenticatorAttestationRawResponse) =
         task {
             let jsonOptions =
@@ -114,12 +116,13 @@ type PasskeyAuthenticationController
             }
 
             fakeDb.AddCredentialToUser(options.User, storedCredential)
+            
+            
 
             return this.Json(credential)
         }
 
     [<HttpPost>]
-    //  [<Route("/assertionOptions")>]
     member this.AssertionOptionsPost([<FromForm>] username: string, [<FromForm>] userVerification: string) =
         task {
             let existingCredentials =
@@ -152,7 +155,6 @@ type PasskeyAuthenticationController
         }
 
     [<HttpPost>]
-    // [<Route("/makeAssertion")>]
     member this.MakeAssertion([<FromBody>] clientResponse: AuthenticatorAssertionRawResponse) =
         task {
             let jsonOptions =

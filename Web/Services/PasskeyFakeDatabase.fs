@@ -58,7 +58,6 @@ type PasskeyFakeDatabase() =
                 |> List.filter (_.UserHandle.AsSpan().SequenceEqual(userHandle))
         }
 
-    // don't need
     member this.UpdateCounter(credentialId: byte array, counter: uint) : unit =
         let credentialIndex =
             storedCredentials

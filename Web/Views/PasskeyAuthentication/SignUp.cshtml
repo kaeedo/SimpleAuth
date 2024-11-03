@@ -1,0 +1,208 @@
+@model Web.Models.PasswordlessModel
+
+<header>
+    <h1>Passkey Sign Up</h1>
+    @await Component.InvokeAsync("NavBar")
+</header>
+
+<main>
+    <form hx-on:submit="window.onPasskeySignUpSubmit(event)" onsubmit="return false">
+        <input type="text" name="username" placeholder="Username" aria-label="Username" autoComplete="username"
+               required/>
+        <button type="submit">
+            Sign Up
+        </button>
+    </form>
+</main>
+
+@section Scripts
+{
+    <script type="module">
+        window.onPasskeySignUpSubmit = async (e) => {
+            e.preventDefault();
+            
+            const username = e.target.querySelector('input[name="username"]').value;
+            const displayName = username;
+        
+            // possible values: none, direct, indirect
+            const attestation_type = "none";
+            // possible values: <empty>, platform, cross-platform
+            const authenticator_attachment = "";
+        
+            // possible values: preferred, required, discouraged
+            const user_verification = "preferred";
+        
+            // possible values: discouraged, preferred, required
+            const residentKey = "discouraged";
+        
+            // prepare form post data
+            const data = new FormData();
+            data.append('username', username);
+            data.append('displayName', displayName);
+            data.append('attType', attestation_type);
+            data.append('authType', authenticator_attachment);
+            data.append('userVerification', user_verification);
+            data.append('residentKey', residentKey);
+        
+            // send to server for registering
+            const makeCredentialOptions = await fetchMakeCredentialOptions(data)
+        
+            console.log("Credential Options Object", makeCredentialOptions);
+        
+            if (makeCredentialOptions.status === "error") {
+                console.error("Error creating credential options");
+                console.error(makeCredentialOptions.errorMessage);
+                return;
+            }
+        
+            makeCredentialOptions.challenge = window.coerceToArrayBuffer(makeCredentialOptions.challenge);
+            makeCredentialOptions.user.id = window.coerceToArrayBuffer(makeCredentialOptions.user.id);
+        
+            makeCredentialOptions.excludeCredentials = makeCredentialOptions.excludeCredentials.map((c) => {
+                c.id = window.coerceToArrayBuffer(c.id);
+                return c;
+            });
+        
+            if (makeCredentialOptions.authenticatorSelection.authenticatorAttachment === null) makeCredentialOptions.authenticatorSelection.authenticatorAttachment = undefined;
+        
+            console.log("Credential Options Formatted", makeCredentialOptions);
+        
+            console.log("Creating PublicKeyCredential...");
+        
+            let newCredential;
+            try {
+                newCredential = await navigator.credentials.create({
+                    publicKey: makeCredentialOptions
+                });
+            } catch (e) {
+                const msg = "Could not create credentials in browser. Probably because the username is already registered with your authenticator. Please change username or authenticator."
+                console.error(msg, e);
+            }
+        
+            console.log("PublicKeyCredential Created", newCredential);
+        
+            try {
+                registerNewCredential(newCredential);
+            } catch (e) {
+                console.error(err.message ? err.message : err);
+            }
+        };
+            
+        async function fetchMakeCredentialOptions(formData) {
+            let response = await fetch('/PasskeyAuthentication/makeCredentialOptions', {
+                method: 'POST', // or 'PUT'
+                body: formData, // data can be `string` or {object}!
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+        
+            return await response.json();
+        }
+        
+        
+        // This should be used to verify the auth data with the server
+        async function registerNewCredential(newCredential) {
+            // Move data into Arrays incase it is super long
+            let attestationObject = new Uint8Array(newCredential.response.attestationObject);
+            let clientDataJSON = new Uint8Array(newCredential.response.clientDataJSON);
+            let rawId = new Uint8Array(newCredential.rawId);
+        
+            const data = {
+                id: newCredential.id,
+                rawId: window.coerceToBase64Url(rawId),
+                type: newCredential.type,
+                extensions: newCredential.getClientExtensionResults(),
+                response: {
+                    AttestationObject: window.coerceToBase64Url(attestationObject),
+                    clientDataJSON: window.coerceToBase64Url(clientDataJSON),
+                    transports: newCredential.response.getTransports()
+                }
+            };
+        
+            let response;
+            try {
+                response = await registerCredentialWithServer(data);
+            } catch (e) {
+                console.error(e);
+            }
+        
+            console.log("Credential Object", response);
+        
+            // show error
+            if (response.status === "error") {
+                console.error("Error creating credential");
+                console.error(response.errorMessage);
+                return;
+            }
+            
+            alert('success');
+        
+            // redirect to dashboard?
+            //window.location.href = "/dashboard/" + state.user.displayName;
+        }
+        
+        async function registerCredentialWithServer(formData) {
+            const response = await fetch('/PasskeyAuthentication/makeCredential', {
+                method: 'POST', // or 'PUT'
+                body: JSON.stringify(formData), // data can be `string` or {object}!
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+        
+            return await response.json();
+        }
+    </script>
+    @*<script type="module">
+        import { Client } from 'https://cdn.passwordless.dev/dist/1.1.0/esm/passwordless.min.mjs';
+
+        window.onSignUpSubmit = async (e) => {
+            e.preventDefault();
+            const username = e.target.querySelector('input[name="username"]').value;
+
+            const response = await fetch(
+                '@Url.Action("WebAuthnSignUp", "PasswordlessAuthentication")',
+                {
+                    method: "post",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ username }),
+                }
+            );
+
+            const { registrationToken, userId } = await response.json();
+
+            const p = new Client({
+                apiKey: "@Model.PublicKey",
+            });
+
+            const { token, error } = await p.register(registrationToken);
+
+            if (error) {
+                alert('Nope. Check console');
+                console.error(error);
+                return;
+            }
+
+            const createResponse = await fetch('@Url.Action("CreateUser", "PasswordlessAuthentication")', {
+                method: 'post',
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ userId, username })
+            });
+
+            const { success } = await createResponse.json();
+
+            if (token && success) {
+                const url = `@Url.Action("WebAuthnSignIn", "PasswordlessAuthentication")?token=${token}`;
+                await htmx.ajax('GET', url)
+            } else {
+                console.error(error);
+            }
+        };
+    </script>*@
+}

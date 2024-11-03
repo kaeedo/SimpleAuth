@@ -1,0 +1,149 @@
+@model Web.Models.PasswordlessModel
+
+<header>
+    <h1>Passkey Login</h1>
+    @await Component.InvokeAsync("NavBar")
+</header>
+
+<main hx-disable>
+    <form hx-on:submit="window.onSignInSubmit(event)" onsubmit="return false">
+        <input type="text" name="username" placeholder="Username" aria-label="Username" autoComplete="username"
+               required/>
+        <button type="submit">
+            Login
+        </button>
+    </form>
+</main>
+
+@section Scripts
+{
+    <script type="module">
+        window.onSignInSubmit = async (event) => {
+            event.preventDefault();
+        
+            const username = e.target.querySelector('input[name="username"]').value;
+        
+            // prepare form post data
+            var formData = new FormData();
+            formData.append('username', username);
+        
+            // send to server for registering
+            let makeAssertionOptions;
+            try {
+                const res = await fetch('/PasskeyAuthentication/assertionOptions', {
+                    method: 'POST', // or 'PUT'
+                    body: formData, // data can be `string` or {object}!
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+        
+                makeAssertionOptions = await res.json();
+            } catch (e) {
+                console.error("Request to server failed", e);
+            }
+        
+            console.log("Assertion Options Object", makeAssertionOptions);
+        
+            // show options error to user
+            if (makeAssertionOptions.status === "error") {
+                console.error("Error creating assertion options");
+                console.error(makeAssertionOptions.errorMessage);
+                return;
+            }
+        
+            // todo: switch this to coercebase64
+            const challenge = makeAssertionOptions.challenge.replace(/-/g, "+").replace(/_/g, "/");
+            makeAssertionOptions.challenge = Uint8Array.from(atob(challenge), c => c.charCodeAt(0));
+        
+            // fix escaping. Change this to coerce
+            makeAssertionOptions.allowCredentials.forEach(function (listItem) {
+                const fixedId = listItem.id.replace(/\_/g, "/").replace(/\-/g, "+");
+                listItem.id = Uint8Array.from(atob(fixedId), c => c.charCodeAt(0));
+            });
+        
+            console.log("Assertion options", makeAssertionOptions);
+        
+            // ask browser for credentials (browser will ask connected authenticators)
+            let credential;
+            try {
+                credential = await navigator.credentials.get({ publicKey: makeAssertionOptions })
+            } catch (err) {
+                console.error(err.message ? err.message : err);
+            }
+        
+            try {
+                await verifyAssertionWithServer(credential);
+            } catch (e) {
+                console.error("Could not verify assertion", e);
+            }
+        }
+        
+        async function verifyAssertionWithServer(assertedCredential) {
+        
+            // Move data into Arrays incase it is super long
+            let authData = new Uint8Array(assertedCredential.response.authenticatorData);
+            let clientDataJSON = new Uint8Array(assertedCredential.response.clientDataJSON);
+            let rawId = new Uint8Array(assertedCredential.rawId);
+            let sig = new Uint8Array(assertedCredential.response.signature);
+            const data = {
+                id: assertedCredential.id,
+                rawId: window.coerceToBase64Url(rawId),
+                type: assertedCredential.type,
+                extensions: assertedCredential.getClientExtensionResults(),
+                response: {
+                    authenticatorData: window.coerceToBase64Url(authData),
+                    clientDataJSON: window.coerceToBase64Url(clientDataJSON),
+                    signature: window.coerceToBase64Url(sig)
+                }
+            };
+        
+            let response;
+            try {
+                let res = await fetch("/PasskeyAuthentication/makeAssertion", {
+                    method: 'POST', // or 'PUT'
+                    body: JSON.stringify(data), // data can be `string` or {object}!
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+        
+                response = await res.json();
+            } catch (e) {
+                console.error("Request to server failed", e);
+                throw e;
+            }
+        
+            console.log("Assertion Object", response);
+        
+            // show error
+            if (response.status === "error") {
+                console.error("Error doing assertion");
+                console.error(response.errorMessage);
+                return;
+            }
+        
+            alert('success');
+        
+            // redirect to dashboard to show keys
+            window.location.href = "/dashboard/" + value("#login-username");
+        }
+    </script>
+    @*<script type="module">
+        import { Client } from 'https://cdn.passwordless.dev/dist/1.1.0/esm/passwordless.min.mjs';
+
+        window.onSignInSubmit = async (e) => {
+            e.preventDefault();
+            const username = e.target.querySelector('input[name="username"]').value
+
+            const p = new Client({
+                apiKey: '@Model.PublicKey'
+            });
+
+            const { token, error } = await p.signinWithAlias(username);
+
+            await htmx.ajax('GET', `@Url.Action("WebAuthnSignIn", "PasswordlessAuthentication")?token=${token}`);
+        };
+    </script>*@
+}

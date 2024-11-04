@@ -127,7 +127,7 @@ type PasskeyAuthenticationController
         }
 
     [<HttpPost>]
-    member this.AssertionOptionsPost([<FromForm>] username: string, [<FromForm>] userVerification: string) =
+    member this.AssertionOptions([<FromForm>] username: string, [<FromForm>] userVerification: string) =
         task {
             let existingCredentials =
                 if String.IsNullOrWhiteSpace(username) then
@@ -200,6 +200,11 @@ type PasskeyAuthenticationController
 
             if result.DevicePublicKey <> null then
                 credentials.AddDevicePublicKey result.DevicePublicKey
+
+            let id = credentials.AaGuid
+            let username = Encoding.Default.GetString(credentials.UserHandle)
+
+            do! authService.SignIn(id, username)
 
             return this.Json(result)
         }

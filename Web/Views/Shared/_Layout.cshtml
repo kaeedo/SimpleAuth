@@ -15,7 +15,7 @@
 </main>
 @await RenderSectionAsync("Scripts", false)
 </body>
-<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<script src="https://unpkg.com/htmx.org@2.0.3"></script>
 <script type="module">
     window.coerceToArrayBuffer = window.coerceToArrayBuffer || function (thing, name) {
         if (typeof thing === "string") {
@@ -49,7 +49,6 @@
         return thing;
     };
     
-    
     window.coerceToBase64Url = window.coerceToBase64Url || function (thing) {
         // Array or ArrayBuffer to Uint8Array
         if (Array.isArray(thing)) {
@@ -81,28 +80,5 @@
     
         return thing;
     };
-    
-    
-    
-    function detectFIDOSupport() {
-        if (window.PublicKeyCredential === undefined ||
-            typeof window.PublicKeyCredential !== "function") {
-            //$('#register-button').attr("disabled", true);
-            //$('#login-button').attr("disabled", true);
-            var el = document.getElementById("notSupportedWarning");
-            if (el) {
-                el.style.display = 'block';
-            }
-            
-        }
-    }
-    
-    function value(selector) {
-        var el = document.querySelector(selector);
-        if (el.type === "checkbox") {
-            return el.checked;
-        }
-        return el.value;
-    }
 </script>
 </html>

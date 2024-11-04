@@ -1,16 +1,14 @@
-@model Web.Models.PasswordlessModel
-
 <header>
     <h1>Passkey Login</h1>
     @await Component.InvokeAsync("NavBar")
 </header>
 
-<main hx-disable>
-    <form hx-on:submit="window.onSignInSubmit(event)" onsubmit="return false">
+<main>
+    <form hx-on:submit="window.onPasskeySignInSubmit(event)" onsubmit="return false">
         <input type="text" name="username" placeholder="Username" aria-label="Username" autoComplete="username"
                required/>
         <button type="submit">
-            Login
+            Sigsd
         </button>
     </form>
 </main>
@@ -18,13 +16,13 @@
 @section Scripts
 {
     <script type="module">
-        window.onSignInSubmit = async (event) => {
-            event.preventDefault();
+        window.onPasskeySignInSubmit = async (e) => {
+            e.preventDefault();
         
             const username = e.target.querySelector('input[name="username"]').value;
-        
+
             // prepare form post data
-            var formData = new FormData();
+            const formData = new FormData();
             formData.append('username', username);
         
             // send to server for registering
@@ -80,7 +78,6 @@
         }
         
         async function verifyAssertionWithServer(assertedCredential) {
-        
             // Move data into Arrays incase it is super long
             let authData = new Uint8Array(assertedCredential.response.authenticatorData);
             let clientDataJSON = new Uint8Array(assertedCredential.response.clientDataJSON);
@@ -127,23 +124,9 @@
             alert('success');
         
             // redirect to dashboard to show keys
-            window.location.href = "/dashboard/" + value("#login-username");
+            // window.location.href = "/dashboard/" + value("#login-username");
+            
+            //await htmx.ajax('GET', `@Url.Action("WebAuthnSignIn", "PasswordlessAuthentication")?token=${token}`);
         }
     </script>
-    @*<script type="module">
-        import { Client } from 'https://cdn.passwordless.dev/dist/1.1.0/esm/passwordless.min.mjs';
-
-        window.onSignInSubmit = async (e) => {
-            e.preventDefault();
-            const username = e.target.querySelector('input[name="username"]').value
-
-            const p = new Client({
-                apiKey: '@Model.PublicKey'
-            });
-
-            const { token, error } = await p.signinWithAlias(username);
-
-            await htmx.ajax('GET', `@Url.Action("WebAuthnSignIn", "PasswordlessAuthentication")?token=${token}`);
-        };
-    </script>*@
 }

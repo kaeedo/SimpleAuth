@@ -9,7 +9,8 @@ open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Mvc
 open Web.Services
 
-type PasskeyAuthenticationController(ctxAccessor: IHttpContextAccessor, fakeDb: PasskeyFakeDatabase, fido2: IFido2) =
+type PasskeyAuthenticationController
+    (ctxAccessor: IHttpContextAccessor, fakeDb: PasskeyFakeDatabase, fido2: IFido2, authService: AuthService) =
     inherit Controller()
 
     [<HttpGet>]
@@ -116,8 +117,11 @@ type PasskeyAuthenticationController(ctxAccessor: IHttpContextAccessor, fakeDb: 
             }
 
             fakeDb.AddCredentialToUser(options.User, storedCredential)
-            
-            
+
+            let id = storedCredential.AaGuid
+            let username = credential.User.DisplayName
+
+            do! authService.SignIn(id, username)
 
             return this.Json(credential)
         }

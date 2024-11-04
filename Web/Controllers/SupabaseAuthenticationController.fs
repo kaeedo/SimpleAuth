@@ -2,11 +2,10 @@ namespace Web.Controllers
 
 open System
 open Microsoft.AspNetCore.Mvc
-open Microsoft.Extensions.Configuration
 open Web.Models
 open Web.Services
 
-type SupabaseAuthenticationController(config: IConfiguration, authService: AuthService) =
+type SupabaseAuthenticationController(authService: SupabaseAuthService) =
     inherit Controller()
 
     [<HttpGet>]

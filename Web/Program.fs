@@ -86,7 +86,7 @@ let app =
         ////////////////////
         // Passwordless auth service
         ////////////////////
-        builder.Services.AddTransient<PasswordlessService>()
+        builder.Services.AddTransient<AuthService>()
         |> ignore
         ////////////////////
 

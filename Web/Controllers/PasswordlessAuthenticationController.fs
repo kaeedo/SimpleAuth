@@ -10,8 +10,7 @@ open Microsoft.Extensions.Configuration
 open Web.Models
 open Web.Services
 
-type PasswordlessAuthenticationController
-    (config: IConfiguration, passwordlessService: PasswordlessService, fakeDb: FakeDatabase) =
+type PasswordlessAuthenticationController(config: IConfiguration, authService: AuthService, fakeDb: FakeDatabase) =
     inherit Controller()
 
     [<HttpGet>]
@@ -51,7 +50,8 @@ type PasswordlessAuthenticationController
             let body = JsonSerializer.Deserialize<{| success: bool; userId: Guid |}>(response)
 
             if body.success then
-                do! passwordlessService.SignIn(body.userId)
+                let username = fakeDb.GetUser(body.userId)
+                do! authService.SignIn(body.userId, username)
 
                 return this.RedirectToAction("Index", "Home")
             else
@@ -107,7 +107,7 @@ type PasswordlessAuthenticationController
     [<HttpGet>]
     member this.Logout() =
         task {
-            do! passwordlessService.SignOut()
+            do! authService.SignOut()
 
             return this.RedirectToAction("Index", "Home")
         }

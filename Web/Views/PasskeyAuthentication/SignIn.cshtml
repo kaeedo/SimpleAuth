@@ -8,7 +8,7 @@
         <input type="text" name="username" placeholder="Username" aria-label="Username" autoComplete="username"
                required/>
         <button type="submit">
-            Sigsd
+            Login
         </button>
     </form>
 </main>
@@ -28,9 +28,9 @@
             // send to server for registering
             let makeAssertionOptions;
             try {
-                const res = await fetch('/PasskeyAuthentication/assertionOptions', {
-                    method: 'POST', // or 'PUT'
-                    body: formData, // data can be `string` or {object}!
+                const res = await fetch('@Url.Action("AssertionOptions", "PasskeyAuthentication")', {
+                    method: 'POST',
+                    body: formData,
                     headers: {
                         'Accept': 'application/json'
                     }
@@ -50,11 +50,9 @@
                 return;
             }
         
-            // todo: switch this to coercebase64
             const challenge = makeAssertionOptions.challenge.replace(/-/g, "+").replace(/_/g, "/");
             makeAssertionOptions.challenge = Uint8Array.from(atob(challenge), c => c.charCodeAt(0));
-        
-            // fix escaping. Change this to coerce
+            
             makeAssertionOptions.allowCredentials.forEach(function (listItem) {
                 const fixedId = listItem.id.replace(/\_/g, "/").replace(/\-/g, "+");
                 listItem.id = Uint8Array.from(atob(fixedId), c => c.charCodeAt(0));
@@ -97,36 +95,31 @@
         
             let response;
             try {
-                let res = await fetch("/PasskeyAuthentication/makeAssertion", {
-                    method: 'POST', // or 'PUT'
-                    body: JSON.stringify(data), // data can be `string` or {object}!
+                let res = await fetch('@Url.Action("MakeAssertion", "PasskeyAuthentication")', {
+                    method: 'POST',
+                    body: JSON.stringify(data), 
                     headers: {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json'
                     }
                 });
-        
+
                 response = await res.json();
             } catch (e) {
                 console.error("Request to server failed", e);
                 throw e;
             }
-        
+
             console.log("Assertion Object", response);
-        
+
             // show error
             if (response.status === "error") {
                 console.error("Error doing assertion");
                 console.error(response.errorMessage);
                 return;
             }
-        
-            alert('success');
-        
-            // redirect to dashboard to show keys
-            // window.location.href = "/dashboard/" + value("#login-username");
-            
-            //await htmx.ajax('GET', `@Url.Action("WebAuthnSignIn", "PasswordlessAuthentication")?token=${token}`);
+
+            htmx.ajax('GET','@Url.Action("Index", "Secure")', 'body');
         }
     </script>
 }

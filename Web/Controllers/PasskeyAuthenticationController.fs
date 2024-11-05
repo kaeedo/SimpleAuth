@@ -30,10 +30,11 @@ type PasskeyAuthenticationController
             [<FromForm>] userVerification: string
         ) =
         task {
-            let user =
+            let (id, user) =
                 fakeDb.GetOrAddUser(
                     username,
                     fun () ->
+                        Guid.NewGuid(),
                         Fido2User(DisplayName = displayName, Name = username, Id = Encoding.UTF8.GetBytes(username))
                 )
 
@@ -118,7 +119,10 @@ type PasskeyAuthenticationController
 
             fakeDb.AddCredentialToUser(options.User, storedCredential)
 
-            let id = storedCredential.AaGuid
+            let id, _ =
+                fakeDb.GetUser(options.User.DisplayName)
+                |> _.Value
+
             let username = credential.User.DisplayName
 
             do! authService.SignIn(id, username)
@@ -133,9 +137,9 @@ type PasskeyAuthenticationController
                 if String.IsNullOrWhiteSpace(username) then
                     []
                 else
-                    let user = fakeDb.GetUser(username)
+                    let id, user = fakeDb.GetUser(username) |> _.Value
 
-                    fakeDb.GetCredentialsByUser(user.Value)
+                    fakeDb.GetCredentialsByUser(user)
                     |> List.map (_.Descriptor)
 
             let extensions =
@@ -201,7 +205,14 @@ type PasskeyAuthenticationController
             if result.DevicePublicKey <> null then
                 credentials.AddDevicePublicKey result.DevicePublicKey
 
-            let id = credentials.AaGuid
+            let! id =
+                task {
+                    let! users = fakeDb.GetUsersByCredentialIdAsync(result.CredentialId)
+                    let user = users[0]
+
+                    return user |> fst
+                }
+
             let username = Encoding.Default.GetString(credentials.UserHandle)
 
             do! authService.SignIn(id, username)

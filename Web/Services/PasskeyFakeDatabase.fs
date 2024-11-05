@@ -30,17 +30,17 @@ type StoredCredential = {
         this.DevicePublicKeys <- key :: this.DevicePublicKeys
 
 type PasskeyFakeDatabase() =
-    let storedUsers = ConcurrentDictionary<string, Fido2User>()
+    let storedUsers = ConcurrentDictionary<string, Guid * Fido2User>()
     let mutable storedCredentials: StoredCredential list = []
 
-    member this.GetOrAddUser(username: string, addCallback: unit -> Fido2User) : Fido2User =
+    member this.GetOrAddUser(username: string, addCallback: unit -> Guid * Fido2User) : Guid * Fido2User =
         storedUsers.GetOrAdd(username, addCallback ())
 
-    member this.GetUser(username: string) : Fido2User option =
-        let success, user = storedUsers.TryGetValue(username)
+    member this.GetUser(username: string) : (Guid * Fido2User) option =
+        let success, (id, user) = storedUsers.TryGetValue(username)
 
         match success with
-        | true -> Some user
+        | true -> Some(id, user)
         | false -> FSharp.Core.Option.None
 
     member this.GetCredentialsByUser(user: Fido2User) : StoredCredential list =
@@ -78,7 +78,7 @@ type PasskeyFakeDatabase() =
         let credential = { credential with UserId = user.Id }
         storedCredentials <- credential :: storedCredentials
 
-    member this.GetUsersByCredentialIdAsync(credentialId: byte array) : Task<Fido2User list> =
+    member this.GetUsersByCredentialIdAsync(credentialId: byte array) : Task<(Guid * Fido2User) list> =
         task {
             let credential =
                 storedCredentials
@@ -89,7 +89,9 @@ type PasskeyFakeDatabase() =
             | Some c ->
                 return
                     storedUsers
-                    |> Seq.filter (_.Value.Id.AsSpan().SequenceEqual(c.UserId))
+                    |> Seq.filter (fun kvp ->
+                        let k, (id, user) = kvp.Key, kvp.Value
+                        user.Id.AsSpan().SequenceEqual(c.UserId))
                     |> Seq.map (_.Value)
                     |> Seq.toList
         }

@@ -4,11 +4,13 @@ open System
 open System.Security.Claims
 open System.Text.Json
 open Microsoft.AspNetCore.Authorization
+open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Mvc
+open Microsoft.AspNetCore.Routing
 open Web.Models
 
 [<Authorize>]
-type SecureController() =
+type SecureController(ctxAccessor: IHttpContextAccessor, linkGenerator: LinkGenerator) =
     inherit Controller()
 
     [<HttpGet>]
@@ -41,4 +43,6 @@ type SecureController() =
             Username = username
         }
 
+        let url = linkGenerator.GetUriByAction(ctxAccessor.HttpContext, "Index", "Secure")
+        this.Response.Headers.Add("HX-Push-Url", url)
         this.View(model)

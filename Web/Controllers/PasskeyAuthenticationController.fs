@@ -9,6 +9,20 @@ open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Mvc
 open Web.Services
 
+type MakeCredentialOptionsBody = {
+    Username: string
+    DisplayName: string
+    AttType: string
+    AuthType: string
+    ResidentKey: string
+    UserVerification: string
+}
+
+type AssertionOptionsBody = {
+    Username: string
+    UserVerification: string
+}
+
 type PasskeyAuthenticationController
     (ctxAccessor: IHttpContextAccessor, fakeDb: PasskeyFakeDatabase, fido2: IFido2, authService: AuthService) =
     inherit Controller()
@@ -20,22 +34,18 @@ type PasskeyAuthenticationController
     member this.SignIn() = this.View()
 
     [<HttpPost>]
-    member this.MakeCredentialOptions
-        (
-            [<FromForm>] username: string,
-            [<FromForm>] displayName: string,
-            [<FromForm>] attType: string,
-            [<FromForm>] authType: string,
-            [<FromForm>] residentKey: string,
-            [<FromForm>] userVerification: string
-        ) =
+    member this.MakeCredentialOptions([<FromBody>] options: MakeCredentialOptionsBody) =
         task {
             let (id, user) =
                 fakeDb.GetOrAddUser(
-                    username,
+                    options.Username,
                     fun () ->
                         Guid.NewGuid(),
-                        Fido2User(DisplayName = displayName, Name = username, Id = Encoding.UTF8.GetBytes(username))
+                        Fido2User(
+                            DisplayName = options.DisplayName,
+                            Name = options.Username,
+                            Id = Encoding.UTF8.GetBytes(options.Username)
+                        )
                 )
 
             let existingKeys =
@@ -44,14 +54,14 @@ type PasskeyAuthenticationController
 
             let authenticatorSelection =
                 let attachment =
-                    if String.IsNullOrEmpty(authType) then
+                    if String.IsNullOrEmpty(options.AuthType) then
                         FSharp.Core.Option.None
                     else
-                        Some(authType.ToEnum<AuthenticatorAttachment>())
+                        Some(options.AuthType.ToEnum<AuthenticatorAttachment>())
 
                 AuthenticatorSelection(
-                    ResidentKey = residentKey.ToEnum<ResidentKeyRequirement>(),
-                    UserVerification = userVerification.ToEnum<UserVerificationRequirement>(),
+                    ResidentKey = options.ResidentKey.ToEnum<ResidentKeyRequirement>(),
+                    UserVerification = options.ResidentKey.ToEnum<UserVerificationRequirement>(),
                     AuthenticatorAttachment = (attachment |> Option.toNullable)
                 )
 
@@ -59,7 +69,7 @@ type PasskeyAuthenticationController
                 AuthenticationExtensionsClientInputs(
                     Extensions = true,
                     UserVerificationMethod = true,
-                    DevicePubKey = AuthenticationExtensionsDevicePublicKeyInputs(Attestation = attType),
+                    DevicePubKey = AuthenticationExtensionsDevicePublicKeyInputs(Attestation = options.AttType),
                     CredProps = true
                 )
 
@@ -68,7 +78,7 @@ type PasskeyAuthenticationController
                     user,
                     existingKeys,
                     authenticatorSelection,
-                    attType.ToEnum<AttestationConveyancePreference>(),
+                    options.AttType.ToEnum<AttestationConveyancePreference>(),
                     extensions
                 )
 
@@ -131,13 +141,15 @@ type PasskeyAuthenticationController
         }
 
     [<HttpPost>]
-    member this.AssertionOptions([<FromForm>] username: string, [<FromForm>] userVerification: string) =
+    member this.AssertionOptions([<FromBody>] assertionOptions: AssertionOptionsBody) =
         task {
             let existingCredentials =
-                if String.IsNullOrWhiteSpace(username) then
+                if String.IsNullOrWhiteSpace(assertionOptions.Username) then
                     []
                 else
-                    let id, user = fakeDb.GetUser(username) |> _.Value
+                    let id, user =
+                        fakeDb.GetUser(assertionOptions.Username)
+                        |> _.Value
 
                     fakeDb.GetCredentialsByUser(user)
                     |> List.map (_.Descriptor)
@@ -150,10 +162,10 @@ type PasskeyAuthenticationController
                 )
 
             let uv =
-                if String.IsNullOrEmpty(userVerification) then
+                if String.IsNullOrEmpty(assertionOptions.UserVerification) then
                     UserVerificationRequirement.Discouraged
                 else
-                    userVerification.ToEnum<UserVerificationRequirement>()
+                    assertionOptions.UserVerification.ToEnum<UserVerificationRequirement>()
 
             let options = fido2.GetAssertionOptions(existingCredentials, uv, extensions)
 

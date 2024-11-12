@@ -20,19 +20,16 @@
             e.preventDefault();
         
             const username = e.target.querySelector('input[name="username"]').value;
-
-            // prepare form post data
-            const formData = new FormData();
-            formData.append('username', username);
         
             // send to server for registering
             let makeAssertionOptions;
             try {
                 const res = await fetch('@Url.Action("AssertionOptions", "PasskeyAuthentication")', {
                     method: 'POST',
-                    body: formData,
+                    body: JSON.stringify({ username: username }),
                     headers: {
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
                     }
                 });
         
@@ -75,17 +72,18 @@
             }
         }
         
-        async function verifyAssertionWithServer(assertedCredential) {
+        async function verifyAssertionWithServer(credential) {
             // Move data into Arrays incase it is super long
-            let authData = new Uint8Array(assertedCredential.response.authenticatorData);
-            let clientDataJSON = new Uint8Array(assertedCredential.response.clientDataJSON);
-            let rawId = new Uint8Array(assertedCredential.rawId);
-            let sig = new Uint8Array(assertedCredential.response.signature);
+            const authData = new Uint8Array(credential.response.authenticatorData);
+            const clientDataJSON = new Uint8Array(credential.response.clientDataJSON);
+            const rawId = new Uint8Array(credential.rawId);
+            const sig = new Uint8Array(credential.response.signature);
+            
             const data = {
-                id: assertedCredential.id,
+                id: credential.id,
                 rawId: window.coerceToBase64Url(rawId),
-                type: assertedCredential.type,
-                extensions: assertedCredential.getClientExtensionResults(),
+                type: credential.type,
+                extensions: credential.getClientExtensionResults(),
                 response: {
                     authenticatorData: window.coerceToBase64Url(authData),
                     clientDataJSON: window.coerceToBase64Url(clientDataJSON),

@@ -23,24 +23,22 @@
             const displayName = username;
         
             // possible values: none, direct, indirect
-            const attestation_type = "none";
+            const attestationType = "none";
             // possible values: <empty>, platform, cross-platform
-            const authenticator_attachment = "";
-        
+            const authenticatorAttachment = "";
             // possible values: preferred, required, discouraged
-            const user_verification = "preferred";
-        
+            const userVerification = "preferred";
             // possible values: discouraged, preferred, required
             const residentKey = "discouraged";
-        
-            // prepare form post data
-            const data = new FormData();
-            data.append('username', username);
-            data.append('displayName', displayName);
-            data.append('attType', attestation_type);
-            data.append('authType', authenticator_attachment);
-            data.append('userVerification', user_verification);
-            data.append('residentKey', residentKey);
+            
+            const data = {
+                    username: username,
+                    displayName: displayName,
+                    attType: attestationType,
+                    authType: authenticatorAttachment,
+                    userVerification: userVerification,
+                    residentKey: residentKey
+                }
         
             // send to server for registering
             const makeCredentialOptions = await fetchMakeCredentialOptions(data)
@@ -88,12 +86,13 @@
             }
         };
             
-        async function fetchMakeCredentialOptions(formData) {
+        async function fetchMakeCredentialOptions(data) {
             let response = await fetch('@Url.Action("MakeCredentialOptions", "PasskeyAuthentication")', {
                 method: 'POST', 
-                body: formData,
+                body: JSON.stringify(data),
                 headers: {
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
                 }
             });
         

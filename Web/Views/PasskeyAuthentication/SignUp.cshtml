@@ -32,13 +32,13 @@
             const residentKey = "discouraged";
             
             const data = {
-                    username: username,
-                    displayName: displayName,
-                    attType: attestationType,
-                    authType: authenticatorAttachment,
-                    userVerification: userVerification,
-                    residentKey: residentKey
-                }
+                username: username,
+                displayName: displayName,
+                attType: attestationType,
+                authType: authenticatorAttachment,
+                userVerification: userVerification,
+                residentKey: residentKey
+            }
         
             // send to server for registering
             const makeCredentialOptions = await fetchMakeCredentialOptions(data)

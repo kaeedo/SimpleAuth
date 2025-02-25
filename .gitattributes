@@ -1,2 +1,0 @@
-# Explicitly specify F# instead of Forth syntax.
-*.fs linguist-language=FSharp

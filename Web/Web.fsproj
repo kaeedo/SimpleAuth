@@ -31,6 +31,7 @@
 
   <ItemGroup>
     <PackageReference Include="Fido2" Version="4.0.0-beta.13"/>
+    <PackageReference Include="FsToolkit.ErrorHandling" Version="5.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="8.0.1"/>
     <PackageReference Update="FSharp.Core" Version="8.0.100"/>
     <PackageReference Include="Passwordless.AspNetCore" Version="2.0.0-beta6"/>
